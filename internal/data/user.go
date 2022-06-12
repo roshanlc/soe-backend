@@ -212,7 +212,7 @@ func (m UserModel) GetUserDetails(userID int64) (*UserDetails, error) {
 
 	var user UserDetails
 
-	roleModel := RoleModel{DB: m.DB}
+	roleModel := RoleModel(m)
 
 	role, err := roleModel.GetUserRole(userID)
 

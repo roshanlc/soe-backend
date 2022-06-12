@@ -1,0 +1,25 @@
+# the config file must be saved as config.toml
+# change the values as required
+
+# port value
+Port = 9000
+
+# env (environment) =  { debug | test | release }
+# use "release" mode in production
+Env = "debug"
+
+
+# postgres database details
+[DB]
+
+# postgres connection string ( dsn -data source name)
+Dsn = "postgres://username@password@host:port/dbname"
+
+# postgres max open connections
+MaxOpenConns = 25
+
+# postgres max idle connections
+MaxIdleConns = 25
+
+# postgres max connection time
+MaxIdleTime = "15m"

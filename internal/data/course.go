@@ -27,9 +27,8 @@ type Book struct {
 
 // A struct to hold info about teachers teaching a course
 type TaughtBy struct {
-	TeacherID      int64  `json:"teacher_id"`
-	Name           string `json:"name"`
-	TeacherProfile string `json:"teacher_profile"`
+	TeacherID int64  `json:"teacher_id"`
+	Name      string `json:"name"`
 }
 
 // A struct to hold information about courses
@@ -59,7 +58,7 @@ func (m CourseModel) Get(courseCode string) (*Course, error) {
 		query := `SELECT courses.course_id, courses.course_code, courses.title, courses.credit, courses.elective,
 		faculties.name as faculty_name, departments.name as dept_name, programs.name as program, levels.name as level,
 		semesters.semester_id as semester, books.book_id,books.title as book_title, books.author, books.edition, books.publication,
-		course_books.text_book, teachers.teacher_id, teachers.name as teacher_name, teachers.profile as profile
+		course_books.text_book, teachers.teacher_id, teachers.name as teacher_name
 		FROM courses
 		INNER JOIN program_courses ON program_courses.course_id = courses.course_id
 		INNER JOIN programs ON programs.program_id = program_courses.program_id
@@ -92,7 +91,7 @@ func (m CourseModel) Get(courseCode string) (*Course, error) {
 
 	// Who teaches that course
 
-	teacherQuery := `SELECT courses.course_id,teachers.teacher_id, teachers.name as teacher, teachers.profile as teacher_profile
+	teacherQuery := `SELECT courses.course_id,teachers.teacher_id, teachers.name as teacher
 	FROM teachers
 	INNER JOIN teacher_courses ON teachers.teacher_id = teacher_courses.teacher_id
 	INNER JOIN courses ON courses.course_id = teacher_courses.course_id
@@ -221,13 +220,11 @@ func (m CourseModel) Get(courseCode string) (*Course, error) {
 		// course id to maintain reference
 		var courseID int64
 
-		// SELECT courses.course_id,teachers.teacher_id, teachers.name as teacher, teachers.profile as teacher_profile
+		// SELECT courses.course_id,teachers.teacher_id, teachers.name as teacher
 		err := teacherRows.Scan(
 			&courseID,
 			&teacher.TeacherID,
-			&teacher.Name,
-			&teacher.TeacherProfile)
-
+			&teacher.Name)
 		// Incase any err occurred
 		if err != nil {
 			return nil, err
@@ -316,7 +313,7 @@ func (m CourseModel) GetAll() ([]Course, error) {
 
 	// Who teaches that course
 
-	teacherQuery := `SELECT courses.course_id,teachers.teacher_id, teachers.name as teacher, teachers.profile as teacher_profile
+	teacherQuery := `SELECT courses.course_id,teachers.teacher_id, teachers.name as teacher
 	FROM teachers
 	INNER JOIN teacher_courses ON teachers.teacher_id = teacher_courses.teacher_id
 	INNER JOIN courses ON courses.course_id = teacher_courses.course_id`
@@ -486,12 +483,11 @@ func (m CourseModel) GetAll() ([]Course, error) {
 
 		var course Course
 
-		// SELECT courses.course_id,teachers.teacher_id, teachers.name as teacher, teachers.profile as teacher_profile
+		// SELECT courses.course_id,teachers.teacher_id, teachers.name as teacher
 		err := teacherRows.Scan(
 			&courseID,
 			&teacher.TeacherID,
-			&teacher.Name,
-			&teacher.TeacherProfile)
+			&teacher.Name)
 
 		// Incase any err occurred
 		if err != nil {

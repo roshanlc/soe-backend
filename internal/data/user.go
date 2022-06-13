@@ -7,12 +7,16 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/lib/pq"
 	"github.com/roshanlc/soe-backend/internal/validator"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // ProfileLinks
 var profileLinks = map[string]string{"student": "/v1/students/", "teacher": "/v1/teachers/", "superuser": "/v1/superusers/"}
+
+// course link
+const courseLink = "/v1/courses/"
 
 // Create a custom password type which is a struct containing the plaintext and hashed
 // versions of the password for a user. The plaintext field is a *pointer* to a string,
@@ -83,6 +87,7 @@ type Teacher struct {
 	Name      string      `json:"name"`
 	JoinedAt  time.Time   `json:"joined_at"`
 	ContactNo string      `json:"contact_no"`
+	Academics []string    `json:"academics"`
 	TeachesAt []TeachesAt `json:"teaches_at"`
 }
 
@@ -201,12 +206,12 @@ func (m UserModel) GetUserDetails(userID int64) (*UserDetails, error) {
 	WHERE users.user_id = $1`,
 		// Query for teacher
 		"teacher": `SELECT users.user_id, users.email, teachers.name FROM users
-	INNER JOIN students ON students.user_id = users.user_id
+	INNER JOIN teachers ON teachers.user_id = users.user_id
 	WHERE users.user_id = $1`,
 
 		// Query for superuser
 		"superuser": `SELECT users.user_id, users.email, superusers.name FROM users
-	INNER JOIN students ON students.user_id = users.user_id
+	INNER JOIN superusers ON superusers.user_id = users.user_id
 	WHERE users.user_id = $1`,
 	}
 
@@ -315,54 +320,68 @@ func (m UserModel) GetStudentDetails(userID int64) (*Student, error) {
 	return &student, nil
 }
 
-/*
-
 // Get Teacher Details
-func (m UserModel) GetTeacherDetails(userID int64) (*Student, error) {
+func (m UserModel) GetTeacherDetails(userID int64) (*Teacher, error) {
 	/*
 
-		type Teacher struct {
-			UserID            int64       `json:"user_id"`
-			Email             string      `json:"email"`
-			TeacherID         int64       `json:"teacher_id"`
-			Name              string      `json:"name"`
-			JoinedAt          time.Time   `json:"joined_at"`
-			ContactNo         string      `json:"contact_no"`
-			TeachesAt         []TeachesAt `json:"teaches_at"`
+			type Teacher struct {
+				UserID            int64       `json:"user_id"`
+				Email             string      `json:"email"`
+				TeacherID         int64       `json:"teacher_id"`
+				Name              string      `json:"name"`
+				JoinedAt          time.Time   `json:"joined_at"`
+				ContactNo         string      `json:"contact_no"`
+				Academics 		  []string    `json:"academics"`
+				TeachesAt         []TeachesAt `json:"teaches_at"`
+			}
+
+
+		type TeachesAt struct {
+			Faculty    string `json:"faculty"`
+			Department string `json:"department"`
+			Program    string `json:"program"`
+			Level      string `json:"level"`
+			Semester   int    `json:"semester"`
+			Course     string `json:"course"`
+			CourseLink string `json:"course_link"`
 		}
 
-
+	*/
 	var teacher Teacher
 
 	// Construct query
-	query := `SELECT users.user_id, users.email, teacher.student_id, students.name,
-	students.symbol_no, students.pu_regd_no, students.enrolled_at,
-	faculties.name, departments.name, programs.name, levels.name, students.semester_id
+	basicDetailsQuery := `SELECT users.user_id,users.email, teachers.teacher_id, teachers.name,
+	 teachers.joined_at, teachers.contact_no, teachers.academics
 	FROM users
-	INNER JOIN students ON students.user_id = users.user_id
-	INNER JOIN programs ON programs.program_id = students.program_id
+	INNER JOIN teachers ON users.user_id = teachers.user_id
+	WHERE users.user_id = $1 `
+
+	teachesAtQuery := `
+	SELECT courses.title, courses.course_code, programs.name,
+	departments.name, faculties.name, levels.name , program_courses.semester_id
+	FROM teachers
+	INNER JOIN teacher_courses ON teachers.teacher_id  = teacher_courses.teacher_id
+	INNER JOIN courses ON teacher_courses.course_id = courses.course_id
+	INNER JOIN program_courses ON program_courses.course_id  = courses.course_id
+	INNER JOIN programs on programs.program_id = program_courses.program_id
+	INNER JOIN levels on levels.level_id = programs.level_id
 	INNER JOIN departments ON departments.department_id = programs.department_id
 	INNER JOIN faculties ON faculties.faculty_id = departments.faculty_id
-	INNER JOIN levels ON levels.level_id = programs.level_id
-	WHERE users.user_id = $1 `
+	WHERE teachers.teacher_id = $1`
 
 	// 5 sec timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	err := m.DB.QueryRowContext(ctx, query, userID).Scan(
-		&student.UserID,
-		&student.Email,
-		&student.StudentID,
-		&student.Name,
-		&student.SymbolNo,
-		&student.PURedgNo,
-		&student.EnrolledAt,
-		&student.Faculty,
-		&student.Department,
-		&student.Program,
-		&student.Level,
-		&student.Semester)
+	// Query basic details of a teacher
+	err := m.DB.QueryRowContext(ctx, basicDetailsQuery, userID).Scan(
+		&teacher.UserID,
+		&teacher.Email,
+		&teacher.TeacherID,
+		&teacher.Name,
+		&teacher.JoinedAt,
+		&teacher.ContactNo,
+		pq.Array(&teacher.Academics))
 
 	// If errors
 	if err != nil {
@@ -375,8 +394,105 @@ func (m UserModel) GetTeacherDetails(userID int64) (*Student, error) {
 
 	}
 
-	// Return the student details
-	return &student, nil
+	// Retrieving teaching details
+	rows, err := m.DB.QueryContext(ctx, teachesAtQuery, teacher.TeacherID)
+
+	// If errors
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+
+		// courses.title, courses.course_code, programs.name,
+		// departments.name, faculties.name, levels.name , program_courses.semester_id
+		var teachesAt TeachesAt
+		var courseCode string
+		err := rows.Scan(&teachesAt.Course,
+			&courseCode,
+			&teachesAt.Program,
+			&teachesAt.Department,
+			&teachesAt.Faculty,
+			&teachesAt.Level,
+			&teachesAt.Semester)
+
+		// Incase of any error while reading rows
+		if err != nil {
+			return nil, err
+		}
+
+		// Update the course Link
+		teachesAt.CourseLink = courseLink + courseCode
+
+		// Update the teacher instance
+		teachingDetails := teacher.TeachesAt
+		teachingDetails = append(teachingDetails, teachesAt)
+		teacher.TeachesAt = teachingDetails
+
+	}
+
+	// When the rows.Next() loop has finished, call rows.Err() to retrieve any error
+	// that was encountered during the iteration.
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	// Return the teacher details
+	return &teacher, nil
 }
 
-*/
+// Get SuperUser Details
+func (m UserModel) GetSuperUserDetails(userID int64) (*SuperUser, error) {
+	/*
+		type SuperUser struct {
+			UserID      int64  `json:"user_id"`
+			Email       string `json:"email"`
+			SuperUserID int64  `json:"superuser_id"`
+			Name        string `json:"name"`
+			AddedBy     string `json:"added_by"`
+		}
+
+
+	*/
+	var su SuperUser
+
+	// Construct query
+	query := `SELECT users.user_id,users.email, superusers.superuser_id, superusers.name,
+	(SELECT superusers.name FROM superusers WHERE superusers.superuser_id = superusers.added_by)
+	FROM users
+	INNER JOIN superusers ON users.user_id = superusers.user_id
+	WHERE users.user_id = $1`
+
+	// 5 sec timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Query basic details of a superuser
+	err := m.DB.QueryRowContext(ctx, query, userID).Scan(
+		&su.UserID,
+		&su.Email,
+		&su.SuperUserID,
+		&su.Name,
+		&su.AddedBy,
+	)
+
+	// If errors
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+
+	}
+
+	// Return the superuser details
+	return &su, nil
+}

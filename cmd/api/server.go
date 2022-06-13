@@ -64,6 +64,8 @@ func (app *application) serve() error {
 		v1.GET("/users/:user_id", app.authenticatedUser, app.showUserHandler)
 
 		v1.GET("/students/:user_id", app.authenticatedUser, app.showStudentHandler)
+		v1.GET("/teachers/:user_id", app.authenticatedUser, app.showTeacherHandler)
+		v1.GET("/superusers/:user_id", app.authenticatedUser, app.showSuperUserHandler)
 
 	}
 

@@ -67,6 +67,10 @@ func (app *application) serve() error {
 		v1.GET("/teachers/:user_id", app.authenticatedUser, app.showTeacherHandler)
 		v1.GET("/superusers/:user_id", app.authenticatedUser, app.showSuperUserHandler)
 
+		// Programs and levels
+		v1.GET("/programs", app.listProgramsHandler)
+		v1.GET("/levels", app.listLevelsHandler)
+
 	}
 
 	// server struct

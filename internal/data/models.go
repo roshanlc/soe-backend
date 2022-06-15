@@ -15,20 +15,22 @@ var (
 
 // All models within a single wrapper struct
 type Models struct {
-	Notices NoticeModel // Notice model
-	Courses CourseModel // Course Model
-	Users   UserModel   // User model
-	Tokens  TokenModel  // Token Model
-	Roles   RoleModel
+	Notices  NoticeModel  // Notice model
+	Courses  CourseModel  // Course Model
+	Users    UserModel    // User model
+	Tokens   TokenModel   // Token Model
+	Roles    RoleModel    // Role Model
+	Programs ProgramModel // Programs model
 }
 
 // Returns a models object
 func NewModels(db *sql.DB) Models {
 	return Models{
-		Notices: NoticeModel{DB: db}, // NoticeModel
-		Courses: CourseModel{DB: db}, // Course Model
-		Users:   UserModel{DB: db},   // User Model
-		Tokens:  TokenModel{DB: db},  // Token Model
-		Roles:   RoleModel{DB: db},
+		Notices:  NoticeModel{DB: db}, // NoticeModel
+		Courses:  CourseModel{DB: db}, // Course Model
+		Users:    UserModel{DB: db},   // User Model
+		Tokens:   TokenModel{DB: db},  // Token Model
+		Roles:    RoleModel{DB: db},
+		Programs: ProgramModel{DB: db},
 	}
 }

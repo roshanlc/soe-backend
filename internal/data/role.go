@@ -25,6 +25,7 @@ type RoleModel struct {
 	DB *sql.DB
 }
 
+// GetUserRole Returns the role of a user
 func (m RoleModel) GetUserRole(userID int64) (*UserRole, error) {
 
 	// Construct query to get role

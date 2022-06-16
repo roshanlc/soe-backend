@@ -11,6 +11,7 @@ var (
 	ErrRecordNotFound = errors.New("record not found") // specific record not found
 	ErrEditConflict   = errors.New("edit conflict")    // conflict occured while editing
 	ErrNoRecords      = errors.New("no records")       // view is returned empty
+	ErrDuplicateEmail = errors.New("duplicate email")  // Incase of duplicate email
 )
 
 // All models within a single wrapper struct

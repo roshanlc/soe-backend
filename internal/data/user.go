@@ -27,6 +27,29 @@ type Password struct {
 	hash      string
 }
 
+// Struct to hold student registration details
+type StudentRegistration struct {
+	Email      string    `json:"email" binding:"required"`
+	Name       string    `json:"name" binding:"required"`
+	Password   string    `json:"password" binding:"required,min=8,max=72"`
+	SymbolNo   int64     `json:"symbol_no" binding:"required"`
+	PURegdNo   string    `json:"pu_regd_no" binding:"required"`
+	ContactNo  string    `json:"contact_no" binding:"required"`
+	ProgramID  int       `json:"program_id" binding:"required"`
+	EnrolledAt time.Time `json:"enrolled_at" binding:"required"`
+	Semester   int       `json:"semester" binding:"required"`
+}
+
+// Struct to hold teacher registration details
+type TeacherRegistration struct {
+	Email     string    `json:"email" binding:"required"`
+	Name      string    `json:"name" binding:"required"`
+	Password  string    `json:"password" binding:"required,min=8,max=72"`
+	ContactNo string    `json:"contact_no" binding:"required"`
+	Academics []string  `json:"academics" binding:"required"`
+	JoinedAt  time.Time `json:"joined_at" binding:"required"`
+}
+
 // struct to hold details of user
 type User struct {
 	UserID    int64    `json:"user_id"`
@@ -59,7 +82,7 @@ type Student struct {
 	StudentID  int64     `json:"student_id"`
 	Name       string    `json:"name"`
 	SymbolNo   int64     `json:"symbol_no"`
-	PURedgNo   string    `json:"pu_regd_no"`
+	PURegdNo   string    `json:"pu_regd_no"`
 	EnrolledAt time.Time `json:"enrolled_at"`
 	Faculty    string    `json:"faculty"`
 	Department string    `json:"department"`
@@ -297,7 +320,7 @@ func (m UserModel) GetStudentDetails(userID int64) (*Student, error) {
 		&student.StudentID,
 		&student.Name,
 		&student.SymbolNo,
-		&student.PURedgNo,
+		&student.PURegdNo,
 		&student.EnrolledAt,
 		&student.Faculty,
 		&student.Department,
@@ -495,4 +518,110 @@ func (m UserModel) GetSuperUserDetails(userID int64) (*SuperUser, error) {
 
 	// Return the superuser details
 	return &su, nil
+}
+
+// RegisterStudent registers a student user
+func (m UserModel) RegisterStudent(studentReg *StudentRegistration) error {
+
+	query1 := `INSERT INTO users(email, password) VALUES($1, $2) RETURNING user_id`
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Role of a student
+	var role string = "student"
+
+	// hold user id
+	var userID int64
+
+	err := m.DB.QueryRowContext(ctx, query1, studentReg.Email, studentReg.Password).Scan(&userID)
+
+	// Incase of errors
+	if err != nil {
+		switch {
+		case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
+			return ErrDuplicateEmail
+		default:
+			return err
+		}
+	}
+
+	// Now, with this user_id we can insert data into students table
+	query2 := `INSERT INTO students(name,symbol_no,pu_regd_no,enrolled_at,contact_no,program_id,semester_id,user_id) 
+	VALUES( $1, $2, $3, $4, $5, $6, $7, $8)`
+	ctx1, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Args value
+	args := []interface{}{studentReg.Name, studentReg.SymbolNo, studentReg.PURegdNo, studentReg.EnrolledAt, studentReg.ContactNo,
+		studentReg.ProgramID, studentReg.Semester, userID}
+
+	_, err = m.DB.ExecContext(ctx1, query2, args...)
+
+	if err != nil {
+
+		return err
+	}
+
+	// Add user_id to user_roles table
+
+	err = RoleModel(m).AddRoleToUser(role, userID)
+
+	if err != nil {
+		return err
+	}
+
+	// Success
+	return nil
+}
+
+// RegisterTeacher registers a teacher user
+func (m UserModel) RegisterTeacher(teacherReg *TeacherRegistration) error {
+
+	query1 := `INSERT INTO users(email, password) VALUES($1, $2) RETURNING user_id`
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Role of a student
+	var role string = "teacher"
+
+	// hold user id
+	var userID int64
+
+	err := m.DB.QueryRowContext(ctx, query1, teacherReg.Email, teacherReg.Password).Scan(&userID)
+
+	// Incase of errors
+	if err != nil {
+		switch {
+		case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
+			return ErrDuplicateEmail
+		default:
+			return err
+		}
+	}
+
+	// Now, with this user_id we can insert data into teachers table
+	query2 := `INSERT INTO teachers(name,contact_no,academics,joined_at,user_id) 
+	VALUES( $1, $2, $3, $4, $5)`
+	ctx1, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Args value
+	args := []interface{}{teacherReg.Name, teacherReg.ContactNo, pq.Array(teacherReg.Academics), teacherReg.JoinedAt, userID}
+
+	_, err = m.DB.ExecContext(ctx1, query2, args...)
+
+	if err != nil {
+		return err
+	}
+
+	// Add user_id to user_roles table
+
+	err = RoleModel(m).AddRoleToUser(role, userID)
+
+	if err != nil {
+		return err
+	}
+
+	// Success
+	return nil
 }

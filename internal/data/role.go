@@ -60,3 +60,22 @@ func (m RoleModel) GetUserRole(userID int64) (*UserRole, error) {
 	// Return the user role
 	return &userRole, nil
 }
+
+// Add user to user_roles table
+func (m RoleModel) AddRoleToUser(role string, userID int64) error {
+
+	// Construct query
+	query := `INSERT INTO user_roles(user_id,role_id) VALUES ($1, ( SELECT role_id FROM roles WHERE LOWER(roles.name) = LOWER($2) ) )`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := m.DB.ExecContext(ctx, query, userID, role)
+
+	if err != nil {
+		return err
+	}
+
+	// Success
+	return nil
+}

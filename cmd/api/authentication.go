@@ -186,8 +186,7 @@ func (app *application) logoutHandler(c *gin.Context) {
 // extract token from Authorization header
 func extractToken(value string) string {
 	token := ""
-	// Authorization: Bearer DGFJDJFH943NR4NR9F94NF49N4F94N
-	// Header-Title: Bearer TOKEN_VALUE
+	// Authorization: Bearer TOKEN_VALUE_HERE
 
 	headerParts := strings.Split(value, " ")
 

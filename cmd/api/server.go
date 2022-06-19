@@ -3,6 +3,9 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"path"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -39,12 +42,36 @@ func (app *application) serve() error {
 	// The max size for multi part memory
 	router.MaxMultipartMemory = 10 << 20 // 10 MiB
 
+	// Serve static content
+	// By checking if the trimmed wildcard path *file is empty, you prevent queries to, e.g. /media/1/ (with final slash)
+	// to list the directory. Instead /media/1 (without final slash) doesn't match any route
+	// (it should automatically redirect to /media/1/).
+	// Reference: https://stackoverflow.com/questions/69049626/how-to-serve-files-from-dynamic-subdirectories-using-gin
+	router.GET("/uploads/notices/:folder/*file", func(c *gin.Context) {
+		folder := c.Param("folder")
+		file := c.Param("file")
+		if strings.TrimPrefix(file, "/") == "" {
+			c.AbortWithStatus(http.StatusNotFound)
+			return
+		}
+		fullName := filepath.Join("uploads/notices", folder, filepath.FromSlash(path.Clean("/"+file)))
+
+		// Set the cache for 7 days
+		c.Header("Cache-Control", "public, max-age=604800")
+		// return the file
+		c.File(fullName)
+	})
+
 	// Simple group: v1
 	v1 := router.Group("/v1")
 	{
 		// notices
 		v1.GET("/notices", app.listNoticesHandler)
 		v1.GET("/notices/:notice_id", app.showNoticeHandler)
+
+		// Requires superuser authorization for publication and deletion of notices
+		v1.POST("/notices", app.limitUploadSize, app.isAdmin, app.publishNoticeHandler)
+		v1.DELETE("/notices/:notice_id", app.isAdmin, app.deleteNoticeHandler)
 
 		// courses
 		v1.GET("/courses", app.listCoursesHandler)

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -132,4 +133,56 @@ func (m NoticeModel) GetAll(limit int, sort string) ([]*Notice, error) {
 	}
 
 	return notices, nil
+}
+
+// Insert method insert a notices into database
+func (m NoticeModel) Insert(title, content string, mediaLinks []string, token string) error {
+
+	// Construct a query for the operation
+	query := `INSERT INTO notices ( title, content, media_links, added_by)
+	VALUES ($1, $2, $3, (SELECT superusers.name FROM tokens INNER JOIN superusers ON superusers.user_id = tokens.user_id WHERE tokens.hash= $4 AND tokens.scope = 'authentication') )`
+
+	// Create a timeout context of 5 second
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
+	// Cancel operation in case of 5 second time out
+	defer cancel()
+
+	_, err := m.DB.ExecContext(ctx, query, title, content, pq.Array(mediaLinks), token)
+
+	if err != nil {
+		return err
+	}
+	// Return nil, that is, notice was inserted successfully
+	return nil
+}
+
+// Delete method deletes a notice from table
+func (m NoticeModel) Delete(noticeID int64) error {
+
+	// Construct query
+	query := `DELETE FROM notices WHERE notices.notice_id = $1`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	row, err := m.DB.ExecContext(ctx, query, noticeID)
+
+	if err != nil {
+		log.Println(err)
+	}
+
+	affected, err := row.RowsAffected()
+
+	if err != nil {
+		return nil
+	}
+
+	// If affected rows = 0 then the notice did not exist
+	if affected == 0 {
+		return ErrRecordNotFound
+	}
+
+	// Success
+	return nil
 }

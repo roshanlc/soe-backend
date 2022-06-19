@@ -62,6 +62,9 @@ func main() {
 
 	logger.PrintInfo("Config file has been loaded.", nil)
 
+	// setupFolders
+	setupFolders()
+
 	// Call the openDB() helper function to create the connection pool,
 	// passing in the config struct. It this error returns an error, we log it and exit
 	// the application immediately
@@ -90,10 +93,6 @@ func main() {
 		app.logger.PrintFatal(err, nil)
 	}
 
-	// var p data.Password
-	// p.Set("Thisistheway")
-	// fmt.Println(p.GetDetails())
-	// fmt.Println(p.Matches("Thisistheway"))
 }
 
 // openDB returns a sql.DB connection pool
@@ -145,4 +144,13 @@ func displayHelpInfo() string {
 	var helpInfo string = fmt.Sprintf("Version: %v\n", version)
 	helpInfo += "The configuration should be in \"config.toml\".\nCheck the config_example.toml for sample configuration."
 	return helpInfo
+}
+
+// setupFolders setups necessary folders
+func setupFolders() {
+
+	uploadsFolder := "./uploads/notices"
+
+	// Create directories
+	os.MkdirAll(uploadsFolder, 0777) // IDK why but 0777 is the only permission that allows creating new files/dirs inside it
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/roshanlc/soe-backend/internal/data"
@@ -15,7 +16,20 @@ func (app *application) listCoursesHandler(c *gin.Context) {
 	// slice containing errors
 	var errArray data.ErrorBox
 
-	courses, err := app.models.Courses.GetAll()
+	faculty := ""
+	department := ""
+	program := ""
+	level := ""
+	var semester int = 0
+
+	faculty = c.Query("faculty")
+	department = c.Query("department")
+	program = c.Query("program")
+	level = c.Query("level")
+
+	semester, _ = strconv.Atoi(c.Query("semester"))
+
+	courses, err := app.models.Courses.GetAll(faculty, department, program, level, semester)
 
 	if err != nil {
 		app.logger.PrintError(err, nil)

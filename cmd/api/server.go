@@ -123,7 +123,7 @@ func (app *application) serve() error {
 		// Schedules
 		v1.GET("/days", app.listDaysHandler)
 		v1.GET("/intervals", app.listIntervalsHandler)
-		v1.POST("/schedules", app.setScheduleHandler)
+		v1.POST("/schedules", app.isAdmin, app.setScheduleHandler)
 		v1.GET("/schedules", app.showScheduleHandler)
 
 	}

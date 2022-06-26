@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 	"time"
 )
 
@@ -297,7 +298,7 @@ func (m CourseModel) Get(courseCode string) (*Course, error) {
 }
 
 // Gets all courses by the provided filters
-func (m CourseModel) GetAll() ([]Course, error) {
+func (m CourseModel) GetAll(faculty, department, program, level string, semester int) ([]Course, error) {
 
 	// For now no search paramters will be implemented
 
@@ -508,7 +509,7 @@ func (m CourseModel) GetAll() ([]Course, error) {
 		return extractCourses(allCourses), err
 	}
 
-	// Query for teachers
+	// Query for offered by
 	offeredByRows, err := m.DB.QueryContext(ctx, offeredByQuery)
 
 	if err != nil {
@@ -525,7 +526,7 @@ func (m CourseModel) GetAll() ([]Course, error) {
 	// Defer closing the teacherRows
 	defer offeredByRows.Close()
 
-	// Loop through teacher rows
+	// Loop through rows
 	for offeredByRows.Next() {
 
 		// temp offeredBy  struct
@@ -568,7 +569,9 @@ func (m CourseModel) GetAll() ([]Course, error) {
 
 	// Return the courses
 
-	return extractCourses(allCourses), nil
+	a := extractCourses(allCourses)
+
+	return filterCourses(faculty, department, program, level, semester, &a), nil
 }
 
 // Return a slice containing course from the map
@@ -586,4 +589,52 @@ func extractCourses(allCourses map[int64]Course) []Course {
 	}
 
 	return courses
+}
+
+// filterCourses filters the list of all courses with provided filter values
+
+func filterCourses(faculty, department, program, level string, semester int, allCourses *[]Course) []Course {
+
+	var list []Course
+
+	// Go through course
+	for _, val := range *allCourses {
+
+		//  A course may be offered by multiple programs
+		temp := val
+
+		// Set the offered by to nil
+		temp.OfferedBy = nil
+		for _, offer := range val.OfferedBy {
+
+			var add bool = false
+			switch {
+			case strings.EqualFold(offer.Faculty, faculty):
+				add = true
+			case strings.EqualFold(offer.Department, department):
+				add = true
+
+			case strings.EqualFold(offer.Program, program):
+				add = true
+
+			case strings.EqualFold(offer.Level, level):
+				add = true
+
+			case offer.Semester == semester:
+				add = true
+
+			}
+
+			if add {
+				temp.OfferedBy = append(temp.OfferedBy, offer)
+			}
+		}
+
+		if len(temp.OfferedBy) > 0 {
+			list = append(list, temp)
+		}
+
+	}
+
+	return list
 }

@@ -11,6 +11,12 @@ import (
 	"github.com/roshanlc/soe-backend/internal/data"
 )
 
+// struct to read passwords
+type Pass struct {
+	OldPassword string `json:"old_password"`
+	NewPassword string `json:"new_password"`
+}
+
 // This retrieves user's basic details
 // Handler for GET "/v1/users/:user_id"
 func (app *application) showUserHandler(c *gin.Context) {
@@ -23,6 +29,8 @@ func (app *application) showUserHandler(c *gin.Context) {
 
 	// If user id does not match with token
 	if !val {
+		errBox.Add(data.AuthorizationErrorResponse("You donot have authorization to access this resource"))
+		app.ErrorResponse(c, http.StatusUnauthorized, errBox)
 		return
 	}
 
@@ -38,86 +46,6 @@ func (app *application) showUserHandler(c *gin.Context) {
 	// Return the student
 	c.JSON(http.StatusOK, gin.H{"user": user})
 
-}
-
-// This retrieves student Details
-// Handler For GET "/v1/students/:user_id"
-func (app *application) showStudentHandler(c *gin.Context) {
-	// list of errors
-	var errBox data.ErrorBox
-	// Check if token matches with provided user ID
-	val, token := app.DoesTokenMatchesUserID(c)
-
-	// If user id does not match with token
-	if !val {
-		return
-	}
-
-	student, err := app.models.Users.GetStudentDetails(token.UserID)
-
-	// Return error as internal server errror
-	if err != nil {
-		errBox.Add(data.InternalServerErrorResponse(err.Error()))
-		app.ErrorResponse(c, http.StatusInternalServerError, errBox)
-		return
-	}
-
-	// Return the student
-	c.JSON(http.StatusOK, gin.H{"student": student})
-}
-
-// Show teacher handler
-// Handler For GET "/v1/teachers/:user_id"
-func (app *application) showTeacherHandler(c *gin.Context) {
-	// list of errors
-	var errBox data.ErrorBox
-	// Check if token matches with provided user ID
-	val, token := app.DoesTokenMatchesUserID(c)
-
-	// If user id does not match with token
-	if !val {
-		return
-	}
-
-	// Get teacher details
-	teacher, err := app.models.Users.GetTeacherDetails(token.UserID)
-
-	// Return error as internal server errror
-	if err != nil {
-		errBox.Add(data.InternalServerErrorResponse(err.Error()))
-		app.ErrorResponse(c, http.StatusInternalServerError, errBox)
-		return
-	}
-
-	// Return the teacher obj
-	c.JSON(http.StatusOK, gin.H{"teacher": teacher})
-}
-
-// Show teacher handler
-// Handler For GET "/v1/superusers/:user_id"
-func (app *application) showSuperUserHandler(c *gin.Context) {
-	// list of errors
-	var errBox data.ErrorBox
-	// Check if token matches with provided user ID
-	val, token := app.DoesTokenMatchesUserID(c)
-
-	// If user id does not match with token
-	if !val {
-		return
-	}
-
-	// Get superuser details
-	su, err := app.models.Users.GetSuperUserDetails(token.UserID)
-
-	// Return error as internal server errror
-	if err != nil {
-		errBox.Add(data.InternalServerErrorResponse(err.Error()))
-		app.ErrorResponse(c, http.StatusInternalServerError, errBox)
-		return
-	}
-
-	// Return the teacher obj
-	c.JSON(http.StatusOK, gin.H{"superuser": su})
 }
 
 // Checks wether the tokens matches with the provided UserID
@@ -173,4 +101,94 @@ func (app *application) DoesTokenMatchesUserID(c *gin.Context) (bool, *data.Toke
 
 	// Return true
 	return true, token
+}
+
+// Handler for POST "/v1/users/:user_id/password"
+func (app *application) changePasswordHandler(c *gin.Context) {
+	// list of errors
+	var errBox data.ErrorBox
+	// Check if token matches with provided user ID
+	val, _ := app.DoesTokenMatchesUserID(c)
+
+	// If user id does not match with token
+	if !val {
+		errBox.Add(data.AuthorizationErrorResponse("You donot have authorization to access this resource"))
+		app.ErrorResponse(c, http.StatusUnauthorized, errBox)
+		return
+	}
+
+	userID := c.Param("user_id")
+	userIDVal, err := strconv.Atoi(userID)
+
+	// Conversion error
+	if err != nil {
+		errBox.Add(data.InternalServerErrorResponse("Please provide a valid user_id."))
+		app.ErrorResponse(c, http.StatusInternalServerError, errBox)
+		return
+	}
+	var p Pass
+	err = c.ShouldBindJSON(&p)
+
+	if err != nil {
+		errBox.Add(data.InternalServerErrorResponse("The server had problems when processing this request."))
+		app.ErrorResponse(c, http.StatusInternalServerError, errBox)
+		return
+	}
+
+	oldHash, err := app.models.Users.GetPassword(int64(userIDVal))
+
+	if err != nil {
+		switch err {
+		case data.ErrRecordNotFound:
+			errBox.Add(data.BadRequestResponse("Please provide a valid user_id."))
+			app.ErrorResponse(c, http.StatusBadRequest, errBox)
+			return
+		default:
+			errBox.Add(data.InternalServerErrorResponse("The server had problems when processing this request."))
+			app.ErrorResponse(c, http.StatusInternalServerError, errBox)
+			return
+
+		}
+	}
+
+	oldPass := data.Password{}
+	oldPass.SetHash(oldHash)
+
+	check, err := oldPass.Matches(p.OldPassword)
+	if err != nil {
+		errBox.Add(data.InternalServerErrorResponse("The server had problems when processing this request."))
+		app.ErrorResponse(c, http.StatusInternalServerError, errBox)
+		return
+	}
+
+	// If old password does not match
+	if !check {
+
+		errBox.Add(data.CustomErrorResponse("Password Mis-match", "The provided old password does not match."))
+		app.ErrorResponse(c, http.StatusBadRequest, errBox)
+		return
+	}
+	// new password hash
+	newPass := data.Password{}
+	newPass.Set(p.NewPassword)
+
+	err = app.models.Users.ChangePassword(int64(userIDVal), newPass.Hash())
+
+	if err != nil {
+
+		switch {
+		case errors.Is(err, data.ErrNotUpdated):
+			errBox.Add(data.CustomErrorResponse("Password Not Updated", "The password could not be updated"))
+			app.ErrorResponse(c, http.StatusBadRequest, errBox)
+			return
+		default:
+			errBox.Add(data.InternalServerErrorResponse("The server had problems when processing this request."))
+			app.ErrorResponse(c, http.StatusInternalServerError, errBox)
+			return
+		}
+	}
+
+	var msgBox data.MessageBox
+	msgBox.Add(data.MessageResponse("Password Changed", "The password was changed successfully."))
+	c.JSON(http.StatusOK, gin.H{"messages": msgBox})
 }

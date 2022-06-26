@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/roshanlc/soe-backend/internal/data"
@@ -30,4 +32,10 @@ func (app *application) NoRouteResponse(c *gin.Context) {
 	var errBox data.ErrorBox
 	errBox.Add(data.ResourceNotFoundResponse(c.Request.URL.Path + " does not exist."))
 	c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"errors": errBox})
+}
+
+func (app *application) GetHostAddress() {
+
+	fmt.Println(os.Hostname())
+
 }

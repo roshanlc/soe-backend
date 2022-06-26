@@ -8,6 +8,32 @@ Port = 9000
 # use "release" mode in production
 Env = "debug"
 
+# the domain at which app will available
+Domain = "https://app-name.herokuapp.com"
+
+
+# the cors policy, list of supported domains
+Cors = ["*"]
+
+
+# smtp details
+[MAIL]
+
+# host address
+Host = "smtp.mailtrap.io"
+
+# port
+Port = 2525
+
+# Username 
+Username = "gdj97f97efjnejf"
+
+# Password
+Password = "ejf87f87efefef"
+
+# Sender
+Sender = "<no-reply@soe-backend.io>"
+
 
 # postgres database details
 [DB]

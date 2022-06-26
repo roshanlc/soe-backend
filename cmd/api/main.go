@@ -22,9 +22,10 @@ const version = "1.0.0"
 // such as handlers, middlewares, database connection and so on.
 // It can grow as needed.
 type application struct {
-	config *data.Config
-	logger *jsonlog.Logger
-	models data.Models
+	config      *data.Config
+	logger      *jsonlog.Logger
+	models      data.Models
+	mailHandler *MailingContainer
 }
 
 func main() {
@@ -82,9 +83,17 @@ func main() {
 	logger.PrintInfo("database connection pool established", nil)
 
 	app := &application{
-		config: cfg,
-		logger: logger,
-		models: data.NewModels(db),
+		config:      cfg,
+		logger:      logger,
+		models:      data.NewModels(db),
+		mailHandler: NewMailer(),
+	}
+
+	// Start mailer
+	err = app.mailHandler.Authenticate(app.config)
+
+	if err != nil {
+		app.logger.PrintFatal(err, nil)
 	}
 
 	err = app.serve()

@@ -8,10 +8,13 @@ import (
 // Define a custom ErrRecordNotFound error. We'll return this from our Get() method when
 // looking up a object that doesn't exist in our database.
 var (
-	ErrRecordNotFound = errors.New("record not found") // specific record not found
-	ErrEditConflict   = errors.New("edit conflict")    // conflict occured while editing
-	ErrNoRecords      = errors.New("no records")       // view is returned empty
-	ErrDuplicateEmail = errors.New("duplicate email")  // Incase of duplicate email
+	ErrRecordNotFound      = errors.New("record not found")               // specific record not found
+	ErrEditConflict        = errors.New("edit conflict")                  // conflict occured while editing
+	ErrNoRecords           = errors.New("no records")                     // view is returned empty
+	ErrDuplicateEmail      = errors.New("duplicate email")                // Incase of duplicate email
+	ErrOldPasswordMisMatch = errors.New("old password does not match")    // Incase of old password mismatch during password change
+	ErrNotUpdated          = errors.New("the change was not successfull") // Incase of failure while changing info
+	ErrDuplicateEntry      = errors.New("duplicate entry denied")
 )
 
 // All models within a single wrapper struct
@@ -22,6 +25,7 @@ type Models struct {
 	Tokens   TokenModel   // Token Model
 	Roles    RoleModel    // Role Model
 	Programs ProgramModel // Programs model
+	Schedule ScheduleModel
 }
 
 // Returns a models object
@@ -33,5 +37,6 @@ func NewModels(db *sql.DB) Models {
 		Tokens:   TokenModel{DB: db},  // Token Model
 		Roles:    RoleModel{DB: db},
 		Programs: ProgramModel{DB: db},
+		Schedule: ScheduleModel{DB: db},
 	}
 }

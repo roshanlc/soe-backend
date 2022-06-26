@@ -114,6 +114,44 @@ func (m TokenModel) NewAuthenticationToken(userID int64, ttl time.Duration, scop
 	return token, err
 }
 
+// Creates a new activation token for an email account and inserts into tokens table
+func (m TokenModel) GenAndInsertActivationToken(email string, ttl time.Duration) (*Token, error) {
+
+	var token Token
+	// Initialize a zero-valued byte slice with a length of 16 bytes.
+	randomBytes := make([]byte, 16)
+
+	// Use the Read() function from the crypto/rand package to fill the byte slice with
+	// random bytes from your operating system's CSPRNG. This will return an error if
+	// the CSPRNG fails to function correctly.
+	_, err := rand.Read(randomBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	// keeping lower case can help separate login and activation tokens at a glimpse
+	token.Plaintext = strings.ToLower(base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(randomBytes))
+
+	// set hash same as plain text
+	token.Hash = token.Plaintext
+
+	token.Expiry = time.Now().Add(ttl)
+	token.Scope = ScopeActivation
+
+	query := `
+	INSERT INTO tokens (hash, user_id, expires_at, scope)
+	VALUES ($1, (SELECT user_id FROM users WHERE LOWER(email) = LOWER($2)), $3, $4)`
+	args := []interface{}{token.Hash, email, token.Expiry, token.Scope}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, err = m.DB.ExecContext(ctx, query, args...)
+
+	if err != nil {
+		return nil, err
+	}
+	return &token, nil
+}
+
 // DeleteAllForUser() deletes all tokens for a specific user and scope.
 func (m TokenModel) DeleteAllForUser(scope string, userID int64) error {
 	query := `
@@ -122,7 +160,11 @@ func (m TokenModel) DeleteAllForUser(scope string, userID int64) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	_, err := m.DB.ExecContext(ctx, query, scope, userID)
-	return err
+	if err != nil {
+		return err
+
+	}
+	return nil
 }
 
 // Checks if a token exists in db.
@@ -220,4 +262,20 @@ func (m TokenModel) GetTokenDetails(token string) (*Token, error) {
 
 	// No errors, i.e. job was successfull
 	return &obj, nil
+}
+
+func (m TokenModel) DeleteByToken(hash, scope string) error {
+
+	query := `
+	DELETE FROM tokens
+	WHERE hash = $1 AND scope = $2`
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, err := m.DB.ExecContext(ctx, query, hash, scope)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

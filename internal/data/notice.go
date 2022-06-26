@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -169,13 +168,13 @@ func (m NoticeModel) Delete(noticeID int64) error {
 	row, err := m.DB.ExecContext(ctx, query, noticeID)
 
 	if err != nil {
-		log.Println(err)
+		return err
 	}
 
 	affected, err := row.RowsAffected()
 
 	if err != nil {
-		return nil
+		return err
 	}
 
 	// If affected rows = 0 then the notice did not exist

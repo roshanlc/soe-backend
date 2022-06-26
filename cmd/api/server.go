@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,6 +24,12 @@ func (app *application) serve() error {
 	// They are quite good.
 	// Todo: Change their config later
 	router.Use(gin.Logger(), gin.Recovery())
+
+	cor := cors.DefaultConfig()
+	cor.AllowOrigins = app.config.CORS
+
+	// Setup CORS policy
+	router.Use(cors.New(cor))
 
 	// Return proper response when unallowed method is sent
 	router.HandleMethodNotAllowed = true
@@ -73,11 +80,11 @@ func (app *application) serve() error {
 		v1.POST("/notices", app.limitUploadSize, app.isAdmin, app.publishNoticeHandler)
 		v1.DELETE("/notices/:notice_id", app.isAdmin, app.deleteNoticeHandler)
 
-		// courses
+		// courses (Need some tweaking)
 		v1.GET("/courses", app.listCoursesHandler)
 		v1.GET("/courses/:course_code", app.showCourseHandler)
 
-		// teacher profiles
+		// teacher profiles (Under construction)
 		v1.GET("/profiles", app.listProfilesHandler)
 		v1.GET("/profiles/:profie_name", app.showProfileHandler)
 
@@ -94,13 +101,30 @@ func (app *application) serve() error {
 		v1.GET("/teachers/:user_id", app.authenticatedUser, app.showTeacherHandler)
 		v1.GET("/superusers/:user_id", app.authenticatedUser, app.showSuperUserHandler)
 
+		// Change Password
+		v1.POST("/users/:user_id/password", app.authenticatedUser, app.changePasswordHandler)
+
+		// Update student's and teacher's details (business logic is yet to be added )
+		v1.POST("/students/:user_id/update", app.authenticatedUser, app.updateStudentHandler)
+		v1.POST("/teachers/:user_id/update", app.authenticatedUser, app.updateTeacherHandler)
+
 		// Register users
 		v1.POST("/students/register", app.registerStudentHandler) // Register a student
 		v1.POST("/teachers/register", app.registerTeacherHandler) // Register a teacher
 
+		// Activate users
+		v1.GET("/users/activate", app.activateUserHandler)
+
 		// Programs and levels
 		v1.GET("/programs", app.listProgramsHandler)
 		v1.GET("/levels", app.listLevelsHandler)
+		v1.GET("/semesters", app.listSemestersHandler)
+
+		// Schedules
+		v1.GET("/days", app.listDaysHandler)
+		v1.GET("/intervals", app.listIntervalsHandler)
+		v1.POST("/schedules", app.setScheduleHandler)
+		v1.GET("/schedules", app.showScheduleHandler)
 
 	}
 

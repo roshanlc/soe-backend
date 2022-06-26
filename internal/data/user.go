@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/lib/pq"
@@ -159,6 +160,11 @@ func (p *Password) Matches(plaintextPassword string) (bool, error) {
 		}
 	}
 	return true, nil
+}
+
+// SetHash sets the hash for performing match operation
+func (p *Password) SetHash(hash string) {
+	p.hash = hash
 }
 
 func ValidateEmail(v *validator.Validator, email string) {
@@ -623,5 +629,91 @@ func (m UserModel) RegisterTeacher(teacherReg *TeacherRegistration) error {
 	}
 
 	// Success
+	return nil
+}
+
+// GetPassword retrieves the password of a user
+func (m UserModel) GetPassword(userID int64) (string, error) {
+
+	query := `SELECT password FROM users WHERE user_id = $1`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var hash string
+	err := m.DB.QueryRowContext(ctx, query, userID).Scan(&hash)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return "", ErrRecordNotFound
+		default:
+			return "", err
+		}
+	}
+
+	// Return success
+	return hash, nil
+}
+
+// ChangePassword changes the password of a user
+func (m UserModel) ChangePassword(userID int64, newPassHash string) error {
+
+	query := `UPDATE users SET password = $1 WHERE user_id = $2`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := m.DB.ExecContext(ctx, query, newPassHash, userID)
+
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	affected, err := result.RowsAffected()
+
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	// If affected rows = 0 then old password mis-match
+	if affected == 0 {
+		return ErrNotUpdated
+	}
+
+	// Return success
+	return nil
+}
+
+// ActivateUser activates the account of a user
+func (m UserModel) ActivateUser(token string) error {
+
+	query := `UPDATE users SET activated = 't' WHERE user_id = (SELECT tokens.user_id FROM tokens WHERE hash = $1)`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := m.DB.ExecContext(ctx, query, token)
+
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	affected, err := result.RowsAffected()
+
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	// If affected rows = 0 then no such token exists
+	if affected == 0 {
+		return ErrNotUpdated
+	}
+
+	// Return success
 	return nil
 }

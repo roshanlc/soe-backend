@@ -71,6 +71,8 @@ func (app *application) loginHandler(c *gin.Context) {
 		// Incase of other errors
 		default:
 			errBox.Add(data.InternalServerErrorResponse("The server had problems while processing this request."))
+			app.ErrorResponse(c, http.StatusInternalServerError, errBox)
+			return
 		}
 	}
 

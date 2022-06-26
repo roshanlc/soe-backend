@@ -2,12 +2,36 @@ package main
 
 import (
 	"errors"
+	"fmt"
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/roshanlc/soe-backend/internal/data"
 	"github.com/roshanlc/soe-backend/internal/validator"
 )
+
+const activatedHTML = `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Account Activated</title>
+    <style>
+      h3 {
+        text-align: center;
+        font-family: "Gill Sans", "Gill Sans MT", Calibri, "Trebuchet MS",
+          sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <h3>Your account has been activated!</h3>
+  </body>
+</html>
+`
 
 // registerStudentHandler registers a student
 // Handler for POST /v1/students/register
@@ -70,9 +94,23 @@ func (app *application) registerStudentHandler(c *gin.Context) {
 		}
 
 	}
+	token, err := app.models.Tokens.GenAndInsertActivationToken(student.Email, 24*time.Hour)
+	if err != nil {
+		log.Println(err)
+		errBox.Add(data.InternalServerErrorResponse(err.Error()))
+		app.ErrorResponse(c, http.StatusInternalServerError, errBox)
+		return
+
+	}
+	link := app.config.Domain + "/v1/users/activate?token=" + token.Hash
+
+	mailDetails := MailingContent{from: app.config.Mail.Sender, to: student.Email,
+		subject: "Activation Link", content: "Please click on the following <a href = \"" + link + "\">activation link</a> to activate your account."}
+
+	go app.mailHandler.SendMail(&mailDetails)
 
 	var msgBox data.MessageBox
-	msgBox.Add(data.MessageResponse("Account Created", "The account has been created and is currently waiting to be activated by administration"))
+	msgBox.Add(data.MessageResponse("Account Created", "Please check your email for activation link. The activation link is valid for 24 hours."))
 
 	c.JSON(http.StatusCreated, gin.H{"messages": msgBox})
 
@@ -140,8 +178,66 @@ func (app *application) registerTeacherHandler(c *gin.Context) {
 
 	}
 
+	token, err := app.models.Tokens.GenAndInsertActivationToken(teacher.Email, 24*time.Hour)
+	if err != nil {
+		log.Println(err)
+		errBox.Add(data.InternalServerErrorResponse(err.Error()))
+		app.ErrorResponse(c, http.StatusInternalServerError, errBox)
+		return
+
+	}
+	link := app.config.Domain + "/v1/users/activate?token=" + token.Hash
+
+	mailDetails := MailingContent{from: app.config.Mail.Sender, to: teacher.Email,
+		subject: "Activation Link",
+		content: "Please click on the following <a href = \"" + link + "\">activation link</a> to activate your account."}
+
+	go app.mailHandler.SendMail(&mailDetails)
+
 	var msgBox data.MessageBox
-	msgBox.Add(data.MessageResponse("Account Created", "The account has been created and is currently waiting to be activated by administration"))
+	msgBox.Add(data.MessageResponse("Account Created", "Please check your email for activation link. The activation link is valid for 24 hours."))
 
 	c.JSON(http.StatusCreated, gin.H{"messages": msgBox})
+}
+
+// activateUserHandler activates a user account
+// Handler for GET /v1/users/activate
+func (app *application) activateUserHandler(c *gin.Context) {
+	// list of errors
+	var errBox data.ErrorBox
+
+	tokenVal, exists := c.GetQuery("token")
+
+	if !exists {
+		errBox.Add(data.BadRequestResponse("A query paramter (\"token\") is missing."))
+		app.ErrorResponse(c, http.StatusBadRequest, errBox)
+		return
+	}
+
+	err := app.models.Users.ActivateUser(tokenVal)
+	if err != nil {
+		switch err {
+		// no such token exists
+		case data.ErrNotUpdated:
+			errBox.Add(data.ResourceNotFoundResponse("Expired or non-existing token value."))
+			app.ErrorResponse(c, http.StatusNotFound, errBox)
+			return
+
+		default:
+			errBox.Add(data.InternalServerErrorResponse("The server had problems while processing this request."))
+			app.ErrorResponse(c, http.StatusInternalServerError, errBox)
+			return
+		}
+	}
+
+	err = app.models.Tokens.DeleteByToken(tokenVal, data.ScopeActivation)
+
+	if err != nil {
+		fmt.Println(err)
+		errBox.Add(data.InternalServerErrorResponse("The server had problems while processing this request."))
+		app.ErrorResponse(c, http.StatusInternalServerError, errBox)
+		return
+	}
+	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(activatedHTML))
+
 }

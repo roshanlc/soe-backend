@@ -3,3 +3,4 @@
 config.toml
 todo.md
 uploads/
+cmd/api/try.go

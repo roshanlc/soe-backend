@@ -65,3 +65,27 @@ func (app *application) listProgramsHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"programs": programs})
 }
+
+// Handler for GET /v1/semesters/
+// Returns the list of semesters
+func (app *application) listSemestersHandler(c *gin.Context) {
+	// slice containing errors
+	var errArray data.ErrorBox
+
+	semesters, err := app.models.Programs.GetAllSemesters()
+
+	if err != nil {
+		switch {
+		// Empty records
+		case errors.Is(err, data.ErrNoRecords):
+			c.JSON(http.StatusOK, gin.H{"semesters": nil})
+			return
+		default:
+			errArray.Add(data.InternalServerErrorResponse(err.Error()))
+			app.ErrorResponse(c, http.StatusInternalServerError, gin.H{"errors": errArray})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"semesters": semesters})
+}

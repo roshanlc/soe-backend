@@ -50,12 +50,29 @@ type StudentInterval struct {
 	Description string `json:"description"`
 }
 
+type TeacherInterval struct {
+	Interval    string `json:"interval"`
+	CourseID    int    `json:"course_id"`
+	CourseCode  string `json:"course_code"`
+	CourseTitle string `json:"course_title"`
+	Description string `json:"description"`
+}
+
 type StudentDay struct {
 	Day       string            `json:"day"`
 	Intervals []StudentInterval `json:"intervals"`
 }
 type StudentSchedule struct {
 	Days []StudentDay `json:"days"`
+}
+
+type TeacherDay struct {
+	Day       string            `json:"day"`
+	Intervals []TeacherInterval `json:"intervals"`
+}
+
+type TeacherSchedule struct {
+	Days []TeacherDay `json:"days"`
 }
 
 // GetAllDays returns a list of days
@@ -152,6 +169,21 @@ func (m ScheduleModel) SetSchedule(obj *Schedule) error {
 	programID := obj.ProgramID
 	semesterID := obj.SemesterID
 
+	query1 := `SELECT program_id, semester_id FROM running_semesters 
+	WHERE program_id = $1 AND semester_id=$2`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var prog, sem int
+	row := m.DB.QueryRowContext(ctx, query1, programID, semesterID)
+	// Scan the values
+	row.Scan(&prog, &sem)
+
+	// If values stay zero, that means no such mix of prog and sem ids exists
+	if prog == 0 && sem == 0 {
+		return ErrNoRecords
+	}
 	// program_id | semester_id |  day   | interval_id | course_id | description
 	query := `INSERT INTO day_schedule (program_id, semester_id, day, interval_id, course_id, description) VALUES `
 
@@ -191,7 +223,7 @@ func (m ScheduleModel) SetSchedule(obj *Schedule) error {
 	// The whole query
 	fullQuery := query + otherQuery
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	_, err := m.DB.ExecContext(ctx, fullQuery, args...)
@@ -209,23 +241,25 @@ func (m ScheduleModel) SetSchedule(obj *Schedule) error {
 	return nil
 }
 
-/*
-
-SELECT day_schedule.program_id, day_schedule.semester_id,
-day_schedule.day, day_schedule.description, intervals.interval,
-courses.course_id, courses.course_code,
-courses.title ,teachers.teacher_id, teachers.name
-FROM day_schedule
-INNER JOIN courses on courses.course_id = day_schedule.course_id
-INNER JOIN intervals on intervals.interval_id = day_schedule.interval_id
-INNER JOIN teacher_courses on teacher_courses.course_id = day_schedule.course_id
-INNER JOIN teachers on teachers.teacher_id = teacher_courses.teacher_id
-WHERE day_schedule.program_id = $1 AND day_schedule.semester_id = $2
-*/
-
 func (m ScheduleModel) GetSchedule(programID, semesterID int) (*StudentSchedule, error) {
 
 	var obj StudentSchedule
+
+	query1 := `SELECT program_id, semester_id FROM running_semesters 
+	WHERE program_id = $1 AND semester_id=$2`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var prog, sem int
+	row := m.DB.QueryRowContext(ctx, query1, programID, semesterID)
+	// Scan the values
+	row.Scan(&prog, &sem)
+
+	// If values stay zero, that means no such mix of prog and sem ids exists
+	if prog == 0 && sem == 0 {
+		return nil, ErrNoRecords
+	}
 
 	query := `SELECT day_schedule.program_id, day_schedule.semester_id,
 	day_schedule.day, day_schedule.description, intervals.interval,
@@ -238,10 +272,10 @@ func (m ScheduleModel) GetSchedule(programID, semesterID int) (*StudentSchedule,
 	INNER JOIN teachers on teachers.teacher_id = teacher_courses.teacher_id
 	WHERE day_schedule.program_id = $1 AND day_schedule.semester_id = $2`
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx1, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, query, programID, semesterID)
+	rows, err := m.DB.QueryContext(ctx1, query, programID, semesterID)
 
 	if err != nil {
 		switch {
@@ -277,6 +311,85 @@ func (m ScheduleModel) GetSchedule(programID, semesterID int) (*StudentSchedule,
 
 	for _, val := range weekDays {
 		var temp StudentDay
+
+		data, exists := allSchedule[val]
+		// If a certain day has no entries
+		if !exists {
+			temp.Day = val
+			temp.Intervals = nil
+
+			obj.Days = append(obj.Days, temp)
+			continue
+		}
+
+		// if exists
+		temp.Day = val
+
+		for _, x := range data {
+
+			temp.Intervals = append(temp.Intervals, x)
+		}
+
+		obj.Days = append(obj.Days, temp)
+	}
+
+	return &obj, nil
+}
+
+// GetTeacherSchedule returns the schedule for a teacher
+func (m ScheduleModel) GetTeacherSchedule(userID int) (*TeacherSchedule, error) {
+
+	var obj TeacherSchedule
+	query := `
+	SELECT day_schedule.program_id, day_schedule.semester_id,
+	day_schedule.day, day_schedule.description, intervals.interval,
+	courses.course_id, courses.course_code,
+	courses.title FROM day_schedule
+	INNER JOIN courses on courses.course_id = day_schedule.course_id
+	INNER JOIN intervals on intervals.interval_id = day_schedule.interval_id
+	INNER JOIN teacher_courses on teacher_courses.course_id = day_schedule.course_id
+	INNER JOIN teachers on teachers.teacher_id = teacher_courses.teacher_id
+	WHERE teachers.user_id = $1`
+
+	ctx1, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := m.DB.QueryContext(ctx1, query, userID)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrNoRecords
+		default:
+			return nil, err
+		}
+	}
+	defer rows.Close()
+
+	allSchedule := map[string][]TeacherInterval{}
+	// loop through rows
+	for rows.Next() {
+		//  program_id | semester_id |  day   |    description     |  interval   | course_id | course_code |title
+		var day string
+		var temp TeacherInterval
+		var programID, semesterID int
+
+		err := rows.Scan(&programID, &semesterID, &day, &temp.Description, &temp.Interval, &temp.CourseID,
+			&temp.CourseCode, &temp.CourseTitle)
+
+		if err != nil {
+			return nil, err
+		}
+
+		allSchedule[day] = append(allSchedule[day], temp)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	for _, val := range weekDays {
+		var temp TeacherDay
 
 		data, exists := allSchedule[val]
 		// If a certain day has no entries

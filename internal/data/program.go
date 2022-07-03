@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 	"time"
 )
 
@@ -30,6 +31,67 @@ type Program struct {
 // A wrapper struct around a *sql.DB conn
 type ProgramModel struct {
 	DB *sql.DB
+}
+
+// AddRunningSemester adds a  running semester for a program
+func (m ProgramModel) AddRunningSemester(programID, semesterID int) error {
+
+	query := `INSERT INTO running_semesters (program_id, semester_id) VALUES ($1, $2)`
+	// Timeout context
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := m.DB.ExecContext(ctx, query, programID, semesterID)
+
+	if err != nil {
+		switch {
+		case strings.Contains(err.Error(), "duplicate key value violates unique constraint"):
+			return ErrDuplicateEntry
+		default:
+			return err
+		}
+	}
+
+	return nil
+
+}
+
+// GetRunningSemesters returns a list of running semesters of a program
+func (m ProgramModel) GetRunningSemesters(programID int) (*[]Semester, error) {
+
+	query := `SELECT semester_id FROM running_semesters WHERE program_id = $1`
+	// Timeout context
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var sems []Semester
+
+	rows, err := m.DB.QueryContext(ctx, query, programID)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrNoRecords
+		default:
+			return nil, err
+		}
+	}
+
+	for rows.Next() {
+		var temp int
+		err := rows.Scan(&temp)
+		if err != nil {
+			return nil, err
+		}
+
+		sems = append(sems, Semester{temp})
+	}
+
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+
+	return &sems, nil
+
 }
 
 // GetAllLevels Returns the list of all degree levels in db

@@ -29,8 +29,6 @@ func (app *application) showUserHandler(c *gin.Context) {
 
 	// If user id does not match with token
 	if !val {
-		errBox.Add(data.AuthorizationErrorResponse("You donot have authorization to access this resource"))
-		app.ErrorResponse(c, http.StatusUnauthorized, errBox)
 		return
 	}
 
@@ -112,8 +110,6 @@ func (app *application) changePasswordHandler(c *gin.Context) {
 
 	// If user id does not match with token
 	if !val {
-		errBox.Add(data.AuthorizationErrorResponse("You donot have authorization to access this resource"))
-		app.ErrorResponse(c, http.StatusUnauthorized, errBox)
 		return
 	}
 

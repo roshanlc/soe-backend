@@ -40,14 +40,12 @@ func (app *application) showTeacherHandler(c *gin.Context) {
 // Handler For POST "/v1/teachers/:user_id/update"
 func (app *application) updateTeacherHandler(c *gin.Context) {
 	// list of errors
-	var errBox data.ErrorBox
+	// var errBox data.ErrorBox
 	// Check if token matches with provided user ID
 	val, _ := app.DoesTokenMatchesUserID(c)
 
 	// If user id does not match with token
 	if !val {
-		errBox.Add(data.AuthorizationErrorResponse("You donot have authorization to access this resource"))
-		app.ErrorResponse(c, http.StatusUnauthorized, errBox)
 		return
 	}
 	// TODO: add logic

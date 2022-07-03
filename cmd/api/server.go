@@ -119,12 +119,15 @@ func (app *application) serve() error {
 		v1.GET("/programs", app.listProgramsHandler)
 		v1.GET("/levels", app.listLevelsHandler)
 		v1.GET("/semesters", app.listSemestersHandler)
+		v1.GET("/semesters/running", app.listRunningSemestersHandler)
+		v1.POST("/semesters/running", app.isAdmin, app.addRunningSemesterHandler)
 
 		// Schedules
 		v1.GET("/days", app.listDaysHandler)
 		v1.GET("/intervals", app.listIntervalsHandler)
 		v1.POST("/schedules", app.isAdmin, app.setScheduleHandler)
 		v1.GET("/schedules", app.showScheduleHandler)
+		v1.GET("/teachers/:user_id/schedule", app.isTeacher, app.showTeacherScheduleHandler)
 
 	}
 

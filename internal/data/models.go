@@ -14,7 +14,7 @@ var (
 	ErrDuplicateEmail      = errors.New("duplicate email")                // Incase of duplicate email
 	ErrOldPasswordMisMatch = errors.New("old password does not match")    // Incase of old password mismatch during password change
 	ErrNotUpdated          = errors.New("the change was not successfull") // Incase of failure while changing info
-	ErrDuplicateEntry      = errors.New("duplicate entry denied")
+	ErrDuplicateEntry      = errors.New("duplicate entry denied")         // Incase of duplicate entry
 )
 
 // All models within a single wrapper struct

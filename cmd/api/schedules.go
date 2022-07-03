@@ -115,6 +115,10 @@ func (app *application) setScheduleHandler(c *gin.Context) {
 
 	if err != nil {
 		switch err {
+		case data.ErrNoRecords:
+			errBox.Add(data.BadRequestResponse("Please provide a valid mix of program_id and semester_id."))
+			app.ErrorResponse(c, http.StatusBadRequest, errBox)
+			return
 		case data.ErrDuplicateEntry:
 			errBox.Add(data.BadRequestResponse("Duplicate entry for schedule."))
 			app.ErrorResponse(c, http.StatusBadRequest, errBox)
@@ -137,10 +141,89 @@ func (app *application) setScheduleHandler(c *gin.Context) {
 // Handler For GET "/v1/schedules/"
 func (app *application) showScheduleHandler(c *gin.Context) {
 
-	p, _ := strconv.Atoi((c.Query("program_id")))
-	q, _ := strconv.Atoi(c.Query("semester_id"))
-	x, _ := app.models.Schedule.GetSchedule(p, q)
+	var errBox data.ErrorBox
 
-	c.JSON(200, x)
+	p, exists := c.GetQuery("program_id")
 
+	if !exists {
+		errBox.Add(data.BadRequestResponse("Please provide program_id value."))
+		app.ErrorResponse(c, http.StatusBadRequest, errBox)
+		return
+	}
+
+	programID, err := strconv.Atoi(p)
+	if err != nil || programID <= 0 {
+		errBox.Add(data.InternalServerErrorResponse("The server had problems while processing the request or you provided negative or zero value"))
+		app.ErrorResponse(c, http.StatusInternalServerError, errBox)
+		return
+	}
+
+	q, exists := c.GetQuery("semester_id")
+
+	if !exists {
+		errBox.Add(data.BadRequestResponse("Please provide semester_id value."))
+		app.ErrorResponse(c, http.StatusBadRequest, errBox)
+		return
+	}
+
+	semesterID, err := strconv.Atoi(q)
+
+	if err != nil || semesterID <= 0 {
+		errBox.Add(data.InternalServerErrorResponse("The server had problems while processing the request or you provided negative or zero value."))
+		app.ErrorResponse(c, http.StatusInternalServerError, errBox)
+		return
+	}
+
+	schedule, err := app.models.Schedule.GetSchedule(programID, semesterID)
+
+	if err != nil {
+		switch err {
+		case data.ErrNoRecords:
+			errBox.Add(data.BadRequestResponse("Invalid program_id or semester_id."))
+			app.ErrorResponse(c, http.StatusBadRequest, errBox)
+			return
+
+		default:
+			log.Println(err)
+			errBox.Add(data.InternalServerErrorResponse("The server had problems while processing the request."))
+			app.ErrorResponse(c, http.StatusInternalServerError, errBox)
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, schedule)
+
+}
+
+// showTeacherSchedule shows schedule for a teacher
+// Handler for GET "/v1/teachers/:teacher_id/schedule"
+func (app *application) showTeacherScheduleHandler(c *gin.Context) {
+
+	// list of errors
+	var errBox data.ErrorBox
+	// Check if token matches with provided user ID
+	val, _ := app.DoesTokenMatchesUserID(c)
+
+	// If user id does not match with token
+	if !val {
+		return
+	}
+
+	userID, _ := strconv.Atoi(c.Param("user_id"))
+
+	schedule, err := app.models.Schedule.GetTeacherSchedule(userID)
+
+	if err != nil {
+		switch err {
+		// if no courses are assigned to a teacher
+		case data.ErrNoRecords:
+			c.JSON(http.StatusOK, schedule)
+		default:
+			errBox.Add(data.InternalServerErrorResponse("The server had problems while processing the request or you provided negative or zero value."))
+			app.ErrorResponse(c, http.StatusInternalServerError, errBox)
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, schedule)
 }

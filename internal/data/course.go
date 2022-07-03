@@ -571,6 +571,10 @@ func (m CourseModel) GetAll(faculty, department, program, level string, semester
 
 	a := extractCourses(allCourses)
 
+	if faculty == "" && department == "" && program == "" && level == "" && semester == 0 {
+		return a, nil
+	}
+
 	return filterCourses(faculty, department, program, level, semester, &a), nil
 }
 

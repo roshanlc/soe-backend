@@ -28,9 +28,84 @@ type Program struct {
 	Level      string `json:"level"`
 }
 
+// Struct to hold info about faculty
+type Faculty struct {
+	FacultyID int    `json:"faculty_id"`
+	Name      string `json:"name"`
+	Head      string `json:"faculty_head"`
+}
+
 // A wrapper struct around a *sql.DB conn
 type ProgramModel struct {
 	DB *sql.DB
+}
+
+// Returns a list of faculties
+func (m ProgramModel) GetAllFaculties() (*[]Faculty, error) {
+
+	var fac []Faculty
+
+	query := `SELECT faculty_id, name, faculty_head FROM faculties`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := m.DB.QueryContext(ctx, query)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, nil
+		default:
+			return nil, err
+		}
+	}
+
+	// loop through rows
+
+	for rows.Next() {
+		var temp Faculty
+		err := rows.Scan(&temp.FacultyID, &temp.Name, &temp.Head)
+
+		if err != nil {
+			return nil, err
+		}
+
+		fac = append(fac, temp)
+	}
+
+	// Incase of errors while scanning rows
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return &fac, nil
+
+}
+
+// GetAFaculty returns the detail of a faculty
+func (m ProgramModel) GetAFaculty(facultyID int) (*Faculty, error) {
+
+	query := `SELECT faculty_id, name, faculty_head FROM faculties WHERE faculty_id = $1`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var faculty Faculty
+
+	err := m.DB.QueryRowContext(ctx, query, facultyID).Scan(&faculty.FacultyID, &faculty.Name, &faculty.Head)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	return &faculty, nil
+
 }
 
 // AddRunningSemester adds a  running semester for a program

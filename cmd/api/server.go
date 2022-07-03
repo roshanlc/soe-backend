@@ -116,7 +116,12 @@ func (app *application) serve() error {
 		v1.GET("/users/activate", app.activateUserHandler)
 
 		// Programs and levels
+		v1.GET("/faculties", app.listFacultiesHandler)
+		v1.GET("/faculties/:faculty_id", app.showFacultyHandler)
+
 		v1.GET("/programs", app.listProgramsHandler)
+		v1.GET("/programs/:program_id", app.showProgramHandler)
+
 		v1.GET("/levels", app.listLevelsHandler)
 		v1.GET("/semesters", app.listSemestersHandler)
 		v1.GET("/semesters/running", app.listRunningSemestersHandler)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -65,6 +66,51 @@ func (app *application) listProgramsHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"programs": programs})
+}
+
+// Handler for GET /v1/programs/:program_id
+// Returns the program details
+func (app *application) showProgramHandler(c *gin.Context) {
+
+	// slice containing errors
+	var errBox data.ErrorBox
+
+	programVal := c.Param("program_id")
+
+	progamID, err := strconv.Atoi(programVal)
+
+	if err != nil {
+		log.Println(err)
+		errBox.Add(data.InternalServerErrorResponse("The server had problems while processing the request."))
+		app.ErrorResponse(c, http.StatusInternalServerError, errBox)
+		return
+	}
+
+	if progamID <= 0 {
+
+		errBox.Add(data.BadRequestResponse("Please provide a postive program_id value."))
+		app.ErrorResponse(c, http.StatusBadRequest, errBox)
+		return
+	}
+
+	program, err := app.models.Programs.GetProgram(progamID)
+
+	if err != nil {
+		switch err {
+		case data.ErrRecordNotFound:
+			errBox.Add(data.BadRequestResponse("The provided program_id does not exist."))
+			app.ErrorResponse(c, http.StatusNotFound, errBox)
+			return
+		default:
+			log.Println(err)
+			errBox.Add(data.InternalServerErrorResponse("The server had problems while processing the request."))
+			app.ErrorResponse(c, http.StatusInternalServerError, errBox)
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"program": program})
+
 }
 
 // Handler for GET /v1/semesters/
@@ -174,4 +220,68 @@ func (app *application) addRunningSemesterHandler(c *gin.Context) {
 	var msgBox data.MessageBox
 	msgBox.Add(data.MessageResponse("Semester Added", "The semester was added successfully added as a running semester."))
 	c.JSON(http.StatusCreated, gin.H{"messages": msgBox})
+}
+
+// lists all faculties
+// Handler for GET /v1/faculties
+func (app *application) listFacultiesHandler(c *gin.Context) {
+
+	// slice of errors
+	var errBox data.ErrorBox
+
+	faculties, err := app.models.Programs.GetAllFaculties()
+
+	if err != nil {
+		app.logger.PrintError(err, nil)
+		errBox.Add(data.InternalServerErrorResponse("The server had problems while processing the request."))
+		app.ErrorResponse(c, http.StatusInternalServerError, errBox)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"faculties": faculties})
+
+}
+
+// lists all faculties
+// Handler for GET /v1/faculties/:faculty_id
+func (app *application) showFacultyHandler(c *gin.Context) {
+
+	var errBox data.ErrorBox
+
+	facultyVal := c.Param("faculty_id")
+
+	facultyID, err := strconv.Atoi(facultyVal)
+
+	if err != nil {
+		log.Println(err)
+		errBox.Add(data.InternalServerErrorResponse("The server had problems while processing the request."))
+		app.ErrorResponse(c, http.StatusInternalServerError, errBox)
+		return
+	}
+
+	if facultyID <= 0 {
+
+		errBox.Add(data.BadRequestResponse("Please provide a postive faculty_id value."))
+		app.ErrorResponse(c, http.StatusBadRequest, errBox)
+		return
+	}
+
+	faculty, err := app.models.Programs.GetAFaculty(facultyID)
+
+	if err != nil {
+		switch err {
+		case data.ErrRecordNotFound:
+			errBox.Add(data.BadRequestResponse("The provided faculty_id does not exist."))
+			app.ErrorResponse(c, http.StatusNotFound, errBox)
+			return
+		default:
+			log.Println(err)
+			errBox.Add(data.InternalServerErrorResponse("The server had problems while processing the request."))
+			app.ErrorResponse(c, http.StatusInternalServerError, errBox)
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"faculty": faculty})
+
 }

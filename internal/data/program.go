@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log"
 	"strings"
 	"time"
 )
@@ -33,6 +34,14 @@ type Faculty struct {
 	FacultyID int    `json:"faculty_id"`
 	Name      string `json:"name"`
 	Head      string `json:"faculty_head"`
+}
+
+// struct to hold info about departments
+type Department struct {
+	DepartmentID   int    `json:"department_id"`
+	Name           string `json:"name"`
+	DepartmentHead string `json:"department_head"`
+	Faculty        string `json:"faculty"`
 }
 
 // A wrapper struct around a *sql.DB conn
@@ -404,4 +413,102 @@ func (m ProgramModel) GetSemester(semesterID int) (*Semester, error) {
 
 	// Return the program
 	return &sem, nil
+}
+
+// GetDepartments returns a list of departments within a faculty
+func (m ProgramModel) GetDepartments(facultyID int) (*[]Department, error) {
+
+	query := `SELECT departments.department_id, departments.name, departments.department_head, faculties.name as faculty 
+	FROM departments
+	INNER JOIN faculties ON departments.faculty_id = faculties.faculty_id
+	WHERE departments.faculty_id = $1`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var departments []Department
+
+	rows, err := m.DB.QueryContext(ctx, query, facultyID)
+
+	if err != nil {
+		switch {
+		// 404 error
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+
+		// temporary department variable
+		var temp Department
+
+		err := rows.Scan(&temp.DepartmentID, &temp.Name, &temp.DepartmentHead, &temp.Faculty)
+
+		if err != nil {
+			return nil, err
+		}
+
+		departments = append(departments, temp)
+	}
+
+	// Incase some error occurred while scanning rows
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Return the data
+	return &departments, nil
+}
+
+// GetDepartments returns a list of all departments
+func (m ProgramModel) GetAllDepartments() (*[]Department, error) {
+
+	query := `SELECT departments.department_id, departments.name, departments.department_head, faculties.name as faculty 
+	FROM departments
+	INNER JOIN faculties ON departments.faculty_id = faculties.faculty_id`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var departments []Department
+
+	rows, err := m.DB.QueryContext(ctx, query)
+
+	if err != nil {
+		log.Println(err) //Remove the line later
+		switch {
+		// No records
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrNoRecords
+		default:
+			return nil, err
+		}
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+
+		// temporary department variable
+		var temp Department
+
+		err := rows.Scan(&temp.DepartmentID, &temp.Name, &temp.DepartmentHead, &temp.Faculty)
+
+		if err != nil {
+			return nil, err
+		}
+
+		departments = append(departments, temp)
+	}
+
+	// Incase some error occurred while scanning rows
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Return the data
+	return &departments, nil
 }

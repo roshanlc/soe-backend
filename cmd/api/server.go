@@ -119,6 +119,9 @@ func (app *application) serve() error {
 		v1.GET("/faculties", app.listFacultiesHandler)
 		v1.GET("/faculties/:faculty_id", app.showFacultyHandler)
 
+		v1.GET("/departments", app.listDepartmentsHandler)
+		v1.GET("/departments/:faculty_id", app.showDepartmentsHandler)
+
 		v1.GET("/programs", app.listProgramsHandler)
 		v1.GET("/programs/:program_id", app.showProgramHandler)
 

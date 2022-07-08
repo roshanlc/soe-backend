@@ -285,3 +285,69 @@ func (app *application) showFacultyHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"faculty": faculty})
 
 }
+
+// showDepartmentsHandler lists departments under a faculty
+func (app *application) showDepartmentsHandler(c *gin.Context) {
+
+	var errBox data.ErrorBox
+
+	facultyVal := c.Param("faculty_id")
+
+	facultyID, err := strconv.Atoi(facultyVal)
+
+	if err != nil {
+		log.Println(err)
+		errBox.Add(data.InternalServerErrorResponse("The server had problems while processing the request."))
+		app.ErrorResponse(c, http.StatusInternalServerError, errBox)
+		return
+	}
+
+	if facultyID <= 0 {
+
+		errBox.Add(data.BadRequestResponse("Please provide a postive faculty_id value."))
+		app.ErrorResponse(c, http.StatusBadRequest, errBox)
+		return
+	}
+
+	departments, err := app.models.Programs.GetDepartments(facultyID)
+
+	if err != nil {
+		switch err {
+		case data.ErrRecordNotFound:
+			errBox.Add(data.BadRequestResponse("The provided faculty_id does not exist."))
+			app.ErrorResponse(c, http.StatusNotFound, errBox)
+			return
+		default:
+			log.Println(err)
+			errBox.Add(data.InternalServerErrorResponse("The server had problems while processing the request."))
+			app.ErrorResponse(c, http.StatusInternalServerError, errBox)
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"departments": departments})
+}
+
+// showDepartmentsHandler lists all departments
+func (app *application) listDepartmentsHandler(c *gin.Context) {
+
+	var errBox data.ErrorBox
+
+	departments, err := app.models.Programs.GetAllDepartments()
+
+	if err != nil {
+		switch err {
+		case data.ErrNoRecords:
+			// No records
+			c.JSON(http.StatusOK, gin.H{"departments": departments})
+			return
+		default:
+			log.Println(err)
+			errBox.Add(data.InternalServerErrorResponse("The server had problems while processing the request."))
+			app.ErrorResponse(c, http.StatusInternalServerError, errBox)
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"departments": departments})
+}

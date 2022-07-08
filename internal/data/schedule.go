@@ -414,3 +414,113 @@ func (m ScheduleModel) GetTeacherSchedule(userID int) (*TeacherSchedule, error) 
 
 	return &obj, nil
 }
+
+// GetStudentSchedule returns the schedule for a student
+func (m ScheduleModel) GetStudentSchedule(userID int) (*StudentSchedule, error) {
+
+	var obj StudentSchedule
+
+	query := `SELECT day_schedule.program_id, day_schedule.semester_id,
+	day_schedule.day, day_schedule.description, intervals.interval,
+	courses.course_id, courses.course_code,
+	courses.title ,teachers.teacher_id, teachers.name
+	FROM day_schedule
+	INNER JOIN courses on courses.course_id = day_schedule.course_id
+	INNER JOIN intervals on intervals.interval_id = day_schedule.interval_id
+	INNER JOIN teacher_courses on teacher_courses.course_id = day_schedule.course_id
+	INNER JOIN teachers on teachers.teacher_id = teacher_courses.teacher_id
+	WHERE day_schedule.program_id = (SELECT students.program_id FROM students WHERE students.user_id = $1)
+	 AND day_schedule.semester_id = (SELECT students.semester_id FROM students WHERE students.user_id = $1)`
+
+	ctx1, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := m.DB.QueryContext(ctx1, query, userID)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrNoRecords
+		default:
+			return nil, err
+		}
+	}
+	defer rows.Close()
+
+	allSchedule := map[string][]StudentInterval{}
+	// loop through rows
+	for rows.Next() {
+		//  program_id | semester_id |  day   |    description     |  interval   | course_id | course_code |title| teacher_id |     name
+		var day string
+		var temp StudentInterval
+		var programID, semesterID int
+
+		err := rows.Scan(&programID, &semesterID, &day, &temp.Description, &temp.Interval, &temp.CourseID,
+			&temp.CourseCode, &temp.CourseTitle, &temp.TeacherID, &temp.TeacherName)
+
+		if err != nil {
+			return nil, err
+		}
+
+		allSchedule[day] = append(allSchedule[day], temp)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	for _, val := range weekDays {
+		var temp StudentDay
+
+		data, exists := allSchedule[val]
+		// If a certain day has no entries
+		if !exists {
+			temp.Day = val
+			temp.Intervals = nil
+
+			obj.Days = append(obj.Days, temp)
+			continue
+		}
+
+		// if exists
+		temp.Day = val
+
+		for _, x := range data {
+
+			temp.Intervals = append(temp.Intervals, x)
+		}
+
+		obj.Days = append(obj.Days, temp)
+	}
+
+	return &obj, nil
+}
+
+// DeleteSchedule deletes a schedule for a semester of a program
+func (m ScheduleModel) DeleteSchedule(programID, semesterID int) error {
+
+	query1 := `DELETE FROM day_schedule WHERE program_id= $1 AND semester_id= $2`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	row, err := m.DB.ExecContext(ctx, query1, programID, semesterID)
+
+	if err != nil {
+		return err
+	}
+
+	affected, err := row.RowsAffected()
+
+	if err != nil {
+		return err
+	}
+
+	// If affected rows = 0 then the notice did not exist
+	if affected == 0 {
+		return ErrRecordNotFound
+	}
+
+	// Success
+	return nil
+}

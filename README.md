@@ -20,3 +20,21 @@ This is the backend for the College Management System being developed.
 - Daily Schedule for students, teachers (Admin can publish/update schedules) [In Progress🚧]
 - Lodge Issues (For Students, Teachers) [In Progress🚧]
 - Teachers' accounts can viewed as public profiles [In Progress🚧]
+
+### <u>Run</u>
+
+Please check config_example.toml for configuration details.
+
+```shell
+
+git clone https://github.com/roshanlc/soe-backend
+
+cd soe-backend
+
+cp config_example.toml config.toml
+
+vim config.toml # make neccessary changes
+
+go run cmd/api/*
+
+```

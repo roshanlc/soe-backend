@@ -134,8 +134,19 @@ func (app *application) serve() error {
 		v1.GET("/days", app.listDaysHandler)
 		v1.GET("/intervals", app.listIntervalsHandler)
 		v1.POST("/schedules", app.isAdmin, app.setScheduleHandler)
+		v1.DELETE("/schedules", app.isAdmin, app.deleteScheduleHandler)
+
 		v1.GET("/schedules", app.showScheduleHandler)
 		v1.GET("/teachers/:user_id/schedule", app.isTeacher, app.showTeacherScheduleHandler)
+		v1.GET("/students/:user_id/schedule", app.isStudent, app.showStudentScheduleHandler)
+
+		// Issues
+
+		v1.GET("/issues", app.isAdmin, app.listIssuesHandler)
+		v1.POST("/issues", app.isStudentOrTeacher, app.registerIssueHandler) // For students and teachers
+		v1.GET("/students/:user_id/issues", app.isStudent, app.listStudentIssuesHandler)
+		v1.GET("/teachers/:user_id/issues", app.isTeacher, app.listTeacherIssuesHandler)
+		v1.PUT("/issues/:issue_id", app.isAdmin, app.markIssueAsReadHandler)
 
 	}
 

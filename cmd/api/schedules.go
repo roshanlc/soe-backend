@@ -58,6 +58,7 @@ func (app *application) listIntervalsHandler(c *gin.Context) {
 }
 
 // Handler for POST "/v1/schedules"
+// It sets the schedule for a running semester
 func (app *application) setScheduleHandler(c *gin.Context) {
 
 	// list of errors
@@ -226,4 +227,65 @@ func (app *application) showTeacherScheduleHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, schedule)
+}
+
+// Handler for DELETE "/v1/schedules"
+// It deletes the schedule for a running semester
+func (app *application) deleteScheduleHandler(c *gin.Context) {
+
+	// list of errors
+	var errBox data.ErrorBox
+
+	p, exists := c.GetQuery("program_id")
+
+	if !exists {
+		errBox.Add(data.BadRequestResponse("Please provide program_id value."))
+		app.ErrorResponse(c, http.StatusBadRequest, errBox)
+		return
+	}
+
+	programID, err := strconv.Atoi(p)
+	if err != nil || programID <= 0 {
+		errBox.Add(data.InternalServerErrorResponse("The server had problems while processing the request or you provided negative or zero value"))
+		app.ErrorResponse(c, http.StatusInternalServerError, errBox)
+		return
+	}
+
+	q, exists := c.GetQuery("semester_id")
+
+	if !exists {
+		errBox.Add(data.BadRequestResponse("Please provide semester_id value."))
+		app.ErrorResponse(c, http.StatusBadRequest, errBox)
+		return
+	}
+
+	semesterID, err := strconv.Atoi(q)
+
+	if err != nil || semesterID <= 0 {
+		errBox.Add(data.InternalServerErrorResponse("The server had problems while processing the request or you provided negative or zero value."))
+		app.ErrorResponse(c, http.StatusInternalServerError, errBox)
+		return
+	}
+
+	err = app.models.Schedule.DeleteSchedule(programID, semesterID)
+
+	if err != nil {
+		switch err {
+		case data.ErrRecordNotFound:
+			errBox.Add(data.BadRequestResponse("Invalid program_id or semester_id."))
+			app.ErrorResponse(c, http.StatusBadRequest, errBox)
+			return
+
+		default:
+			log.Println(err)
+			errBox.Add(data.InternalServerErrorResponse("The server had problems while processing the request."))
+			app.ErrorResponse(c, http.StatusInternalServerError, errBox)
+			return
+		}
+	}
+
+	var msgBox data.MessageBox
+	msgBox.Add(data.MessageResponse("Schedule Deleted", "The schedule for the semester was successfully deleted."))
+	c.JSON(http.StatusOK, gin.H{"messages": msgBox})
+
 }

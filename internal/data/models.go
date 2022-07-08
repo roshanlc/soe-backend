@@ -26,6 +26,7 @@ type Models struct {
 	Roles    RoleModel    // Role Model
 	Programs ProgramModel // Programs model
 	Schedule ScheduleModel
+	Issues   IssuesModel
 }
 
 // Returns a models object
@@ -38,5 +39,6 @@ func NewModels(db *sql.DB) Models {
 		Roles:    RoleModel{DB: db},
 		Programs: ProgramModel{DB: db},
 		Schedule: ScheduleModel{DB: db},
+		Issues:   IssuesModel{DB: db},
 	}
 }

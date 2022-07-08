@@ -10,7 +10,7 @@ require (
 	golang.org/x/net v0.0.0-20220607020251-c690dde0001d
 )
 
-require github.com/gin-contrib/cors v1.3.1 // indirect
+require github.com/gin-contrib/cors v1.3.1
 
 require (
 	github.com/gin-contrib/sse v0.1.0 // indirect

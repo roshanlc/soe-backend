@@ -80,13 +80,16 @@ func (app *application) serve() error {
 		v1.POST("/notices", app.limitUploadSize, app.isAdmin, app.publishNoticeHandler)
 		v1.DELETE("/notices/:notice_id", app.isAdmin, app.deleteNoticeHandler)
 
-		// courses (Need some tweaking)
+		// courses
 		v1.GET("/courses", app.listCoursesHandler)
 		v1.GET("/courses/:course_code", app.showCourseHandler)
 
-		// teacher profiles (Under construction)
+		// teacher profiles
 		v1.GET("/profiles", app.listProfilesHandler)
-		v1.GET("/profiles/:profie_name", app.showProfileHandler)
+		v1.GET("/profiles/:profile_id", app.showProfileHandler)
+		v1.POST("/teachers/:user_id/profile", app.isTeacher, app.createProfileHandler)
+		v1.PUT("/teachers/:user_id/profile", app.isTeacher, app.updateProfileHandler)
+		v1.DELETE("/teachers/:user_id/profile", app.isTeacher, app.deleteProfileHandler)
 
 		// authentication handler
 		v1.POST("/login", app.limitBodySize, app.loginHandler)       // login operation

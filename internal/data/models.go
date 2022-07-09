@@ -19,14 +19,15 @@ var (
 
 // All models within a single wrapper struct
 type Models struct {
-	Notices  NoticeModel  // Notice model
-	Courses  CourseModel  // Course Model
-	Users    UserModel    // User model
-	Tokens   TokenModel   // Token Model
-	Roles    RoleModel    // Role Model
-	Programs ProgramModel // Programs model
-	Schedule ScheduleModel
-	Issues   IssuesModel
+	Notices  NoticeModel   // Notice model
+	Courses  CourseModel   // Course Model
+	Users    UserModel     // User model
+	Tokens   TokenModel    // Token Model
+	Roles    RoleModel     // Role Model
+	Programs ProgramModel  // Programs model
+	Schedule ScheduleModel // Schedule Model
+	Issues   IssuesModel   // Issue Model
+	Profiles ProfileModel  // Profile Model
 }
 
 // Returns a models object
@@ -40,5 +41,6 @@ func NewModels(db *sql.DB) Models {
 		Programs: ProgramModel{DB: db},
 		Schedule: ScheduleModel{DB: db},
 		Issues:   IssuesModel{DB: db},
+		Profiles: ProfileModel{DB: db},
 	}
 }

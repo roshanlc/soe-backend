@@ -1,10 +1,6 @@
 # SOE-Backend
 
-This is the backend for the College Management System being developed.
-
-### Note: ⚠️Work In Progress⚠️
-
-![Under Construction](https://img.freepik.com/free-vector/illustration-table-tennis-racket-with-construction-banner_152558-64489.jpg?w=300)
+This is the backend for the Online Student Portal System developed as a minor Project.
 
 ### <i><u> Built With </u></i>
 
@@ -16,12 +12,12 @@ This is the backend for the College Management System being developed.
 - Supports JSON REST API
 - Login & Registration (Students, Teachers, Admin)
 - Notices (Admin can publish and delete notices)
-- View Faculty, Department, Program Details easily
-- Daily Schedule for students, teachers (Admin can publish/update schedules) [In Progress🚧]
-- Lodge Issues (For Students, Teachers) [In Progress🚧]
-- Teachers' accounts can viewed as public profiles [In Progress🚧]
+- View Faculty, Department, Program and other details easily
+- Daily Schedule for students, teachers (Admin can publish and delete schedules)
+- Lodge Issues (For Students, Teachers)
+- Teachers' accounts can viewed as public profiles
 
-### <u>Run</u>
+### <u><i>Run</i></u>
 
 Please check config_example.toml for configuration details.
 
@@ -38,3 +34,23 @@ vim config.toml # make neccessary changes
 go run cmd/api/*
 
 ```
+
+### <u><i>To-do</i></u>
+
+- Test cases
+- Cron job to delete expired tokens
+
+### <u><i>Ideas for continuity</i></u>
+
+The plan is to develop a DIY CMS to continue this project as the final project.
+
+1. Id-card generator
+2. Examination Form Registration and Verification
+3. Marks viewing / uploading
+4. Lesson Plans
+5. Grade Calculator
+6. Certificates
+7. Attendance
+8. Communication management (between student/teacher, teacher/superuser, student/superuser..)
+9. Admission and Applicant Enquiry management
+10. Library

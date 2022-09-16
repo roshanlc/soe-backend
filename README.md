@@ -31,14 +31,25 @@ cp config_example.toml config.toml
 
 vim config.toml # make neccessary changes
 
+# run database migrations
+migrate -path=./migrations -database=postgres://username:password@localhost:5432/database up
+
 go run cmd/api/*
 
 ```
 
+### <u><i>Run</i></u>
+
+- `migrate`
+  - It is a cli application to run database migrations.</br>
+    <u>Installation</u>
+    ```shell
+    go get  github.com/golang-migrate/migrate
+    ```
+
 ### <u><i>To-do</i></u>
 
 - Test cases
-- Cron job to delete expired tokens
 
 ### <u><i>Ideas for continuity</i></u>
 

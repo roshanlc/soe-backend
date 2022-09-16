@@ -264,6 +264,7 @@ func (m TokenModel) GetTokenDetails(token string) (*Token, error) {
 	return &obj, nil
 }
 
+// Delete a token
 func (m TokenModel) DeleteByToken(hash, scope string) error {
 
 	query := `
@@ -272,6 +273,24 @@ func (m TokenModel) DeleteByToken(hash, scope string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	_, err := m.DB.ExecContext(ctx, query, hash, scope)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Remove expired tokens
+func (m TokenModel) RemoveExpiredTokens() error {
+	query := `
+	DELETE FROM tokens
+	WHERE expires_at < CURRENT_TIMESTAMP + INTERVAL '9 mins'`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := m.DB.ExecContext(ctx, query)
 
 	if err != nil {
 		return err

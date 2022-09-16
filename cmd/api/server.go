@@ -161,6 +161,21 @@ func (app *application) serve() error {
 		WriteTimeout: 30 * time.Second,
 	}
 
+	// Ticker to remove expired tokens routinely
+	ticker := time.NewTicker(1 * time.Minute)
+
+	// Run a separate go routine
+	go func() {
+
+		// Range over the ticker
+		for range ticker.C {
+
+			// Call the token removing method
+			app.expiredTokenRemoval()
+		}
+
+	}()
+
 	err := server.ListenAndServe()
 	if err != nil {
 		return err

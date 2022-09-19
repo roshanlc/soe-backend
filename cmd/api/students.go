@@ -32,7 +32,8 @@ func (app *application) showStudentHandler(c *gin.Context) {
 		app.ErrorResponse(c, http.StatusInternalServerError, errBox)
 		return
 	}
-
+	//Content-Security-Policy: default-src 'none';
+	c.Header("Content-Security-Policy", "default-src 'none';")
 	// Return the student
 	c.JSON(http.StatusOK, gin.H{"student": student})
 }

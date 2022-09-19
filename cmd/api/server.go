@@ -26,7 +26,14 @@ func (app *application) serve() error {
 	router.Use(gin.Logger(), gin.Recovery())
 
 	cor := cors.DefaultConfig()
-	cor.AllowOrigins = app.config.CORS
+	cor.AllowAllOrigins = true
+	cor.AllowCredentials = true
+	cor.AllowWebSockets = true
+	cor.AllowHeaders = append(cor.AllowHeaders, "Authorization")
+
+	cor.AllowHeaders = append(cor.AllowHeaders, "authorization")
+
+	cor.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}
 
 	// Setup CORS policy
 	router.Use(cors.New(cor))

@@ -33,7 +33,9 @@ func (app *application) showStudentHandler(c *gin.Context) {
 		return
 	}
 	//Content-Security-Policy: default-src 'none';
-	c.Header("Content-Security-Policy", "default-src 'none';")
+	//c.Header("Content-Security-Policy", "default-src 'none';")
+	//c.Header("Access-Control-Allow-Origin", "*")
+
 	// Return the student
 	c.JSON(http.StatusOK, gin.H{"student": student})
 }

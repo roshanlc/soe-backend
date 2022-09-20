@@ -22,8 +22,12 @@ func (m *MailingContainer) Authenticate(config *data.Config) error {
 	server, err := mail.NewClient(config.Mail.Host,
 		mail.WithPort(config.Mail.Port),
 		mail.WithUsername(config.Mail.Username),
-		mail.WithPassword(config.Mail.Password), mail.WithSMTPAuth(mail.SMTPAuthPlain),
-		mail.WithTLSPolicy(mail.TLSMandatory), mail.WithTimeout(mail.DefaultTimeout))
+		mail.WithPassword(config.Mail.Password),
+		mail.WithSMTPAuth(mail.SMTPAuthLogin),
+		//mail.WithSMTPAuth(mail.SMTPAuthPlain),
+		//mail.WithTLSPolicy(mail.TLSMandatory),
+		mail.WithTLSPolicy(mail.DefaultTLSPolicy),
+		mail.WithTimeout(mail.DefaultTimeout))
 
 	if err != nil {
 		log.Println(err)
@@ -45,6 +49,8 @@ func (m *MailingContainer) SendMail(obj *MailingContent) {
 	email.To(obj.to)
 	email.Subject(obj.subject)
 	email.SetBodyString(mail.TypeTextPlain, obj.content)
+	email.SetHeader("MIME-Version", "1.0")
+	email.SetHeader("Content-Type", "text/html; charset=iso-8859-1")
 
 	err := m.client.DialAndSend(email)
 	// log the error

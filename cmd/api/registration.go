@@ -104,8 +104,11 @@ func (app *application) registerStudentHandler(c *gin.Context) {
 	}
 	link := app.config.Domain + "/v1/users/activate?token=" + token.Hash
 
+	cont := generateEmail(link)
+
 	mailDetails := MailingContent{from: app.config.Mail.Sender, to: student.Email,
-		subject: "Activation Link", content: "Please click on the following <a href = \"" + link + "\">activation link</a> to activate your account."}
+		subject: "Activation Your Student Portal Account", content: cont,
+	}
 
 	go app.mailHandler.SendMail(&mailDetails)
 
@@ -188,9 +191,11 @@ func (app *application) registerTeacherHandler(c *gin.Context) {
 	}
 	link := app.config.Domain + "/v1/users/activate?token=" + token.Hash
 
+	cont := generateEmail(link)
+
 	mailDetails := MailingContent{from: app.config.Mail.Sender, to: teacher.Email,
-		subject: "Activation Link",
-		content: "Please click on the following <a href = \"" + link + "\">activation link</a> to activate your account."}
+		subject: "Activation Your Student Portal Account",
+		content: cont}
 
 	go app.mailHandler.SendMail(&mailDetails)
 
@@ -240,4 +245,13 @@ func (app *application) activateUserHandler(c *gin.Context) {
 	}
 	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(activatedHTML))
 
+}
+
+// Generate activation email content
+func generateEmail(link string) string {
+
+	part1 := "Welcome to Online Student Portal, Please click on following link to activate your account."
+	part2 := "Much love from OSP team."
+
+	return fmt.Sprintf("%s\n%v\n\n%s", part1, link, part2)
 }

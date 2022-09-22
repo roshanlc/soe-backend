@@ -19,15 +19,21 @@ type MailingContainer struct {
 
 func (m *MailingContainer) Authenticate(config *data.Config) error {
 
+	// server, err := mail.NewClient(config.Mail.Host,
+	// 	mail.WithPort(config.Mail.Port),
+	// 	mail.WithUsername(config.Mail.Username),
+	// 	mail.WithPassword(config.Mail.Password),
+	// 	//mail.WithSMTPAuth(mail.SMTPAuthLogin),
+	// 	//mail.WithSMTPAuth(mail.SMTPAuthPlain),
+	// 	mail.WithTLSPolicy(mail.TLSMandatory),
+	// 	//	mail.WithTLSPolicy(mail.DefaultTLSPolicy),
+	// 	mail.WithTimeout(mail.DefaultTimeout))
+
 	server, err := mail.NewClient(config.Mail.Host,
 		mail.WithPort(config.Mail.Port),
 		mail.WithUsername(config.Mail.Username),
-		mail.WithPassword(config.Mail.Password),
-		mail.WithSMTPAuth(mail.SMTPAuthLogin),
-		//mail.WithSMTPAuth(mail.SMTPAuthPlain),
-		//mail.WithTLSPolicy(mail.TLSMandatory),
-		mail.WithTLSPolicy(mail.DefaultTLSPolicy),
-		mail.WithTimeout(mail.DefaultTimeout))
+		mail.WithPassword(config.Mail.Password), mail.WithSMTPAuth(mail.SMTPAuthPlain),
+		mail.WithTLSPolicy(mail.TLSMandatory), mail.WithTimeout(mail.DefaultTimeout))
 
 	if err != nil {
 		log.Println(err)

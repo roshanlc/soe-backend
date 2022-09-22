@@ -12,7 +12,11 @@ require (
 
 require github.com/gin-contrib/cors v1.3.1
 
-require github.com/golang-migrate/migrate v3.5.4+incompatible // indirect
+require (
+	github.com/golang-migrate/migrate v3.5.4+incompatible // indirect
+	github.com/jfeliu007/goplantuml v1.6.1 // indirect
+	github.com/spf13/afero v1.8.2 // indirect
+)
 
 require (
 	github.com/gin-contrib/sse v0.1.0 // indirect

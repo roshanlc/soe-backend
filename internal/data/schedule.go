@@ -373,12 +373,17 @@ func (m ScheduleModel) GetTeacherSchedule(userID int) (*TeacherSchedule, error) 
 		var day string
 		var temp TeacherInterval
 		var programID, semesterID int
-
-		err := rows.Scan(&programID, &semesterID, &day, &temp.Description, &temp.Interval, &temp.CourseID,
+		var desc sql.NullString // Used for column that might return null or string
+		err := rows.Scan(&programID, &semesterID, &day, &desc, &temp.Interval, &temp.CourseID,
 			&temp.CourseCode, &temp.CourseTitle)
 
 		if err != nil {
 			return nil, err
+		}
+		if desc.Valid { //if not null use this
+			temp.Description = desc.String
+		} else {
+			temp.Description = ""
 		}
 
 		allSchedule[day] = append(allSchedule[day], temp)
@@ -454,12 +459,17 @@ func (m ScheduleModel) GetStudentSchedule(userID int) (*StudentSchedule, error) 
 		var day string
 		var temp StudentInterval
 		var programID, semesterID int
-
-		err := rows.Scan(&programID, &semesterID, &day, &temp.Description, &temp.Interval, &temp.CourseID,
+		var desc sql.NullString // Used for column that might return null or string
+		err := rows.Scan(&programID, &semesterID, &day, &desc, &temp.Interval, &temp.CourseID,
 			&temp.CourseCode, &temp.CourseTitle, &temp.TeacherID, &temp.TeacherName)
 
 		if err != nil {
 			return nil, err
+		}
+		if desc.Valid { //if not null use this
+			temp.Description = desc.String
+		} else {
+			temp.Description = ""
 		}
 
 		allSchedule[day] = append(allSchedule[day], temp)

@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS program_courses(
 	semester_id bigint REFERENCES semesters(semester_id),
 	
 	-- primary key = both the columns
-	CONSTRAINT progam_course_pkey PRIMARY KEY (program_id, course_id)
+	CONSTRAINT progam_course_pkey PRIMARY KEY (program_id, course_id,semester_id)
 
 );
 

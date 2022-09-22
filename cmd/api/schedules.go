@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -220,6 +221,7 @@ func (app *application) showTeacherScheduleHandler(c *gin.Context) {
 		case data.ErrNoRecords:
 			c.JSON(http.StatusOK, schedule)
 		default:
+			fmt.Println(err)
 			errBox.Add(data.InternalServerErrorResponse("The server had problems while processing the request or you provided negative or zero value."))
 			app.ErrorResponse(c, http.StatusInternalServerError, errBox)
 			return

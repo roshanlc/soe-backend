@@ -60,8 +60,8 @@ VALUES
 
 INSERT INTO teachers
 VALUES 
-(default,'Balen Shah',default,'+977-165656','{"Structural Engineering"}',default,(SELECT user_id FROM users WHERE email = 'teacher1@pu.edu.np')),
-(default,'Anand Gandhi',default,'+977-1898956','{"Filmgraphy"}',default,(SELECT user_id FROM users WHERE email = 'teacher2@pu.edu.np'));
+(default,'Balen Shah',default,'+977-165656','{"Structural Engineering","Civil Engineering"}',default,(SELECT user_id FROM users WHERE email = 'teacher1@pu.edu.np')),
+(default,'Anand Gandhi',default,'+977-1898956','{"Filmgraphy","Philosohpy", "Artificial Intelligence"}',default,(SELECT user_id FROM users WHERE email = 'teacher2@pu.edu.np'));
 
 INSERT INTO teacher_profiles
 VALUES
@@ -96,7 +96,10 @@ VALUES
 -- insert into teacher_courses
  INSERT INTO teacher_courses 
  VALUES ((SELECT teacher_id FROM teachers WHERE name='Balen Shah'),(SELECT course_id FROM courses WHERE course_code = 'CMP115'),default),
- ((SELECT teacher_id FROM teachers WHERE name='Anand Gandhi'),(SELECT course_id FROM courses WHERE course_code = 'CMP390'),default);
+ ((SELECT teacher_id FROM teachers WHERE name='Anand Gandhi'),(SELECT course_id FROM courses WHERE course_code = 'CMP390'),default),
+ ((SELECT teacher_id FROM teachers WHERE name='Balen Shah'),(SELECT course_id FROM courses WHERE course_code = 'MEC130'),default),
+ ((SELECT teacher_id FROM teachers WHERE name='Anand Gandhi'),(SELECT course_id FROM courses WHERE course_code = 'CMP350'),default),
+ ((SELECT teacher_id FROM teachers WHERE name='Balen Shah'),(SELECT course_id FROM courses WHERE course_code = 'CMP320'),default);
  
  
 -- insert into books
@@ -150,9 +153,44 @@ INSERT INTO intervals VALUES
 
 
 -- daily schedule ( program_id,semester_id,  day, interval, course_id)
-INSERT INTO day_schedule VALUES
-((SELECT program_id FROM programs WHERE name = 'Computer Engineering'),1,'SUNDAY',
-(SELECT interval_id FROM intervals WHERE interval = '10:15-11:05'),(SELECT course_id FROM courses WHERE course_code = 'CMP115'));
+INSERT INTO day_schedule VALUES 
+
+-- for second semester
+((SELECT program_id FROM programs WHERE name = 'Computer Engineering'),2,'SUNDAY',
+(SELECT interval_id FROM intervals WHERE interval = '10:15-11:05'),(SELECT course_id FROM courses WHERE course_code = 'CMP115')),
+
+((SELECT program_id FROM programs WHERE name = 'Computer Engineering'),2,'MONDAY',
+(SELECT interval_id FROM intervals WHERE interval = '11:55-12:45'),(SELECT course_id FROM courses WHERE course_code = 'CMP115')),
+
+((SELECT program_id FROM programs WHERE name = 'Computer Engineering'),2,'TUESDAY',
+(SELECT interval_id FROM intervals WHERE interval = '12:45-13:35'),(SELECT course_id FROM courses WHERE course_code = 'CMP115')),
+((SELECT program_id FROM programs WHERE name = 'Computer Engineering'),2,'MONDAY',
+(SELECT interval_id FROM intervals WHERE interval = '10:15-11:05'),(SELECT course_id FROM courses WHERE course_code = 'MEC130')),
+
+((SELECT program_id FROM programs WHERE name = 'Computer Engineering'),2,'SUNDAY',
+(SELECT interval_id FROM intervals WHERE interval = '11:55-12:45'),(SELECT course_id FROM courses WHERE course_code = 'MEC130')),
+
+((SELECT program_id FROM programs WHERE name = 'Computer Engineering'),2,'TUESDAY',
+(SELECT interval_id FROM intervals WHERE interval = '11:55-12:45'),(SELECT course_id FROM courses WHERE course_code = 'MEC130')),
+
+-- for sixth semester
+((SELECT program_id FROM programs WHERE name = 'Computer Engineering'),6,'WEDNESDAY',
+(SELECT interval_id FROM intervals WHERE interval = '10:15-11:05'),(SELECT course_id FROM courses WHERE course_code = 'CMP350')),
+
+((SELECT program_id FROM programs WHERE name = 'Computer Engineering'),6,'THURSDAY',
+(SELECT interval_id FROM intervals WHERE interval = '11:55-12:45'),(SELECT course_id FROM courses WHERE course_code = 'CMP350')),
+
+((SELECT program_id FROM programs WHERE name = 'Computer Engineering'),6,'FRIDAY',
+(SELECT interval_id FROM intervals WHERE interval = '12:45-13:35'),(SELECT course_id FROM courses WHERE course_code = 'CMP350')),
+((SELECT program_id FROM programs WHERE name = 'Computer Engineering'),6,'THURSDAY',
+(SELECT interval_id FROM intervals WHERE interval = '10:15-11:05'),(SELECT course_id FROM courses WHERE course_code = 'CMP320')),
+
+((SELECT program_id FROM programs WHERE name = 'Computer Engineering'),6,'WEDNESDAY',
+(SELECT interval_id FROM intervals WHERE interval = '11:55-12:45'),(SELECT course_id FROM courses WHERE course_code = 'CMP320')),
+
+((SELECT program_id FROM programs WHERE name = 'Computer Engineering'),6,'FRIDAY',
+(SELECT interval_id FROM intervals WHERE interval = '11:55-12:45'),(SELECT course_id FROM courses WHERE course_code = 'CMP320'))
+;
 
 
 
@@ -161,3 +199,14 @@ INSERT INTO day_schedule VALUES
 INSERT INTO issues VALUES 
 (default, 'This a issue text',(SELECT user_id FROM users WHERE email = 'student1@pu.edu.np'),'student','f',default),
 (default, 'This a issue text',(SELECT user_id FROM users WHERE email = 'teacher1@pu.edu.np'),'teacher','f',default);
+
+
+-- insert a sample notice
+
+INSERT INTO notices VALUES (default,
+'This is a demo notice title',
+'Nepal adopted the multi-university concept in 1983. The idea of Pokhara University (PU) was conceived in 1986; however, it was established only in 1997 under the Pokhara University Act, 1997. The Incumbent Honorable Prime Minister and the Honorable Minister for Education of the Federal Democratic Republic Nepal are the Chancellor and the Pro-Chancellor, respectively.  The Chancellor appoints the Vice Chancellor, the principal executive officer of the university. The Registrar is designated to assist him/her in financial management and general administration. A non-profit autonomous institution, PU is partly funded by the Government of Nepal and partly by revenues from its students and affiliated colleges.',
+default,
+'{}',
+default,
+'naval');
